@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private Button btn_Scan;
 
-    private BroadcastReceiver_BTState mBTStateUpdateReceiver;
+    public BroadcastReceiver_BTState mBTStateUpdateReceiver;
     private Scanner_BTLE mBTLeScanner;
 
     @Override
@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     // Closing app.
     @Override
-    protected void onStop() {
+    public void onStop() {
         super.onStop();
 
         // Unregister phone as Bluetooth receiver if app is closed
@@ -138,7 +138,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         String name = mBTDevicesArrayList.get(position).getName();
         String address = mBTDevicesArrayList.get(position).getAddress();
 
-        // Connect to device?
+        // Connect to device and open acitivty_btle_services page
         Intent intent = new Intent(this, Activity_BTLE_Services.class);
         intent.putExtra(Activity_BTLE_Services.EXTRA_NAME, name);
         intent.putExtra(Activity_BTLE_Services.EXTRA_ADDRESS, address);

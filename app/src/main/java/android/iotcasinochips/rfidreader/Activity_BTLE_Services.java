@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
 
@@ -20,9 +21,8 @@ import java.util.List;
 
 public class Activity_BTLE_Services extends AppCompatActivity implements ExpandableListView.OnChildClickListener {
     private final static String TAG = Activity_BTLE_Services.class.getSimpleName();
-
-    public static final String EXTRA_NAME = "android.aviles.rfidreader.Activity_BTLE_Services.NAME";
-    public static final String EXTRA_ADDRESS = "android.aviles.rfidreader.Activity_BTLE_Services.ADDRESS";
+    public static final String EXTRA_NAME = "android.iotcasinochips.rfidreader.Activity_BTLE_Services.NAME";
+    public static final String EXTRA_ADDRESS = "android.iotcasinochips.rfidreader.Activity_BTLE_Services.ADDRESS";
 
     private ListAdapter_BTLE_Services expandableListAdapter;
     private ExpandableListView expandableListView;
@@ -32,69 +32,98 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
     private HashMap<String, ArrayList<BluetoothGattCharacteristic>> characteristics_HashMapList;
 
     private Intent mBTLE_Service_Intent;
-    private Service_BTLE_GATT mBTLE_Service;
+    private Service_BTLE_GATT RFID_reader_service;
     private boolean mBTLE_Service_Bound;
     private BroadcastReceiver_BTLE_GATT mGattUpdateReceiver;
 
     private String name;
     private String address;
 
+    private MainActivity ma;
+
     private ServiceConnection mBTLE_ServiceConnection = new ServiceConnection() {
 
+        // When the phone attempts to connect to the RFID reader, this is called automatically
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
 
             // We've bound to LocalService, cast the IBinder and get LocalService instance
             Service_BTLE_GATT.BTLeServiceBinder binder = (Service_BTLE_GATT.BTLeServiceBinder) service;
-            mBTLE_Service = binder.getService();
+            RFID_reader_service = binder.getService();
             mBTLE_Service_Bound = true;
 
-            if (!mBTLE_Service.initialize()) {
+            if (!RFID_reader_service.initialize()) {
                 Log.e(TAG, "Unable to initialize Bluetooth");
                 finish();
             }
 
-            mBTLE_Service.connect(address);
-
-            // Automatically connects to the device upon successful start-up initialization.
-//            mBTLeService.connect(mBTLeDeviceAddress);
-
-//            mBluetoothGatt = mBTLeService.getmBluetoothGatt();
-//            mGattUpdateReceiver.setBluetoothGatt(mBluetoothGatt);
-//            mGattUpdateReceiver.setBTLeService(mBTLeService);
+            // Connect to the RFID reader.
+            RFID_reader_service.connect(address);
         }
 
+        // When reader disconnects from app
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
-            mBTLE_Service = null;
+            RFID_reader_service = null;
             mBTLE_Service_Bound = false;
-
-//            mBluetoothGatt = null;
-//            mGattUpdateReceiver.setBluetoothGatt(null);
-//            mGattUpdateReceiver.setBTLeService(null);
         }
     };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Set activity_btle_services.xml to be visible
         setContentView(R.layout.activity_btle_services);
 
+        Button btnDisconnect = (Button) findViewById(R.id.btnDisconnect);
+        Button btnInitialize = (Button) findViewById(R.id.btnInitialize);
+        Button btnInventory = (Button) findViewById(R.id.btnInventory);
+
+        // Disconnect from reader and return to Scan page
+        btnDisconnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                RFID_reader_service.disconnect();
+            }
+        });
+
+        // Send initialize code to initialize reader
+        btnInitialize.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+            }
+        });
+
+        // Send inventory code to tell reader to take inventory
+        btnInventory.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+            }
+        });
+
+        // Get name and address
         Intent intent = getIntent();
         name = intent.getStringExtra(Activity_BTLE_Services.EXTRA_NAME);
         address = intent.getStringExtra(Activity_BTLE_Services.EXTRA_ADDRESS);
 
+        // Create clear storage variables for services
         services_ArrayList = new ArrayList<>();
         characteristics_HashMap = new HashMap<>();
         characteristics_HashMapList = new HashMap<>();
 
+        // Instantiate services list
         expandableListAdapter = new ListAdapter_BTLE_Services(
                 this, services_ArrayList, characteristics_HashMapList);
 
+        // Set view to be lv_expandable and write to it via expandableListAdapter
         expandableListView = (ExpandableListView) findViewById(R.id.lv_expandable);
         expandableListView.setAdapter(expandableListAdapter);
         expandableListView.setOnChildClickListener(this);
 
+        // Set name and address of service on the view
         ((TextView) findViewById(R.id.tv_name)).setText(name + " Services");
         ((TextView) findViewById(R.id.tv_address)).setText(address);
     }
@@ -103,9 +132,13 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
     protected void onStart() {
         super.onStart();
 
+        // Instantiate GATT server handler
         mGattUpdateReceiver = new BroadcastReceiver_BTLE_GATT(this);
+
+        // Register current activity as a GATT server handler
         registerReceiver(mGattUpdateReceiver, Utils.makeGattUpdateIntentFilter());
 
+        // Instantiate service handler (Activity_BTLE_Services) with GATT server (Service_BTLE_GATT)
         mBTLE_Service_Intent = new Intent(this, Service_BTLE_GATT.class);
         bindService(mBTLE_Service_Intent, mBTLE_ServiceConnection, Context.BIND_AUTO_CREATE);
         startService(mBTLE_Service_Intent);
@@ -121,10 +154,22 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         super.onPause();
     }
 
+    // Whenever the activity is stopped, reader disconnects
+    // Make the Android back button do the same thing as the disconnect button
+    // QOL feature
     @Override
     protected void onStop() {
         super.onStop();
 
+        // Disconnect from reader
+        Utils.toast(getApplicationContext(), "Disconnected from reader");
+
+        // TODO: Do we reset the reader when disconnecting from it?
+        // TODO: WILL ALSO NEED TO BE CHANGED FOR DISCONNECT BUTTON
+
+        RFID_reader_service.disconnect();
+
+        // Unbind GATT server and services handler
         unregisterReceiver(mGattUpdateReceiver);
         unbindService(mBTLE_ServiceConnection);
         mBTLE_Service_Intent = null;
@@ -143,17 +188,17 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             Dialog_BTLE_Characteristic dialog_btle_characteristic = new Dialog_BTLE_Characteristic();
 
             dialog_btle_characteristic.setTitle(uuid);
-            dialog_btle_characteristic.setService(mBTLE_Service);
+            dialog_btle_characteristic.setService(RFID_reader_service);
             dialog_btle_characteristic.setCharacteristic(characteristic);
 
             dialog_btle_characteristic.show(getFragmentManager(), "Dialog_BTLE_Characteristic");
         } else if (Utils.hasReadProperty(characteristic.getProperties()) != 0) {
-            if (mBTLE_Service != null) {
-                mBTLE_Service.readCharacteristic(characteristic);
+            if (RFID_reader_service != null) {
+                RFID_reader_service.readCharacteristic(characteristic);
             }
         } else if (Utils.hasNotifyProperty(characteristic.getProperties()) != 0) {
-            if (mBTLE_Service != null) {
-                mBTLE_Service.setCharacteristicNotification(characteristic, true);
+            if (RFID_reader_service != null) {
+                RFID_reader_service.setCharacteristicNotification(characteristic, true);
             }
         }
 
@@ -162,13 +207,13 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
 
     public void updateServices() {
 
-        if (mBTLE_Service != null) {
+        if (RFID_reader_service != null) {
 
             services_ArrayList.clear();
             characteristics_HashMap.clear();
             characteristics_HashMapList.clear();
 
-            List<BluetoothGattService> servicesList = mBTLE_Service.getSupportedGattServices();
+            List<BluetoothGattService> servicesList = RFID_reader_service.getSupportedGattServices();
 
             for (BluetoothGattService service : servicesList) {
 
@@ -191,6 +236,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         }
     }
 
+    // Change value of data in expandableListAdapter
     public void updateCharacteristic() {
         expandableListAdapter.notifyDataSetChanged();
     }
