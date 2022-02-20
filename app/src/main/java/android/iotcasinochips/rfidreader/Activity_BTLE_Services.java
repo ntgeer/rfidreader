@@ -100,7 +100,24 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         btnInitialize.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                // Send 02 to e7560002-fc1d-8db5-ad46-26e5843b5915
 
+                // Couldn't figure out the best way to get a characteristic based on UUID.
+                // I can think of a few ways, but I figured I'd let you do this since you know more
+                // about what this SHOULD look like for the final product.
+                // (I guess I'll let you do initialize since it's really only sending 0x02)
+
+                /*BluetoothGattCharacteristic characteristic = characteristics_HashMap.get(services_ArrayList.get(x).getUuid().toString());
+                if (characteristic.getUuid().toString() == "e7560002-fc1d-8db5-ad46-26e5843b5915"){
+                    if (Utils.hasWriteProperty(characteristic.getProperties()) != 0) {
+                        byte[] b = {(byte) 2};
+                        // Set value of write from what was typed
+                        characteristic.setValue(b);
+                        // Send write to reader
+                        Service_BTLE_GATT service;
+                        RFID_reader_service.writeCharacteristic(characteristic);
+                    }
+                }*/
             }
         });
 
