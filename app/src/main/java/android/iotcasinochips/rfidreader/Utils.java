@@ -1,5 +1,6 @@
 package android.iotcasinochips.rfidreader;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothGattCharacteristic;
@@ -10,7 +11,7 @@ import android.view.Gravity;
 import android.widget.Toast;
 
 /**
- * Created by Kelvin on 5/8/16.
+ * Some utility functions
  */
 public class Utils {
 
@@ -26,6 +27,7 @@ public class Utils {
         }
     }
 
+    @SuppressLint("MissingPermission")
     public static void requestUserBluetooth(Activity activity) {
         Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
         activity.startActivityForResult(enableBtIntent, MainActivity.REQUEST_ENABLE_BT);
@@ -53,14 +55,17 @@ public class Utils {
         return sb.toString();
     }
 
+    // Convenient function to check if the characteristic has the Write property
     public static int hasWriteProperty(int property) {
         return property & BluetoothGattCharacteristic.PROPERTY_WRITE;
     }
 
+    // Convenient function to check if the characteristic has the Read property
     public static int hasReadProperty(int property) {
         return property & BluetoothGattCharacteristic.PROPERTY_READ;
     }
 
+    // Convenient function to check if the characteristic has the Notify property
     public static int hasNotifyProperty(int property) {
         return property & BluetoothGattCharacteristic.PROPERTY_NOTIFY;
     }

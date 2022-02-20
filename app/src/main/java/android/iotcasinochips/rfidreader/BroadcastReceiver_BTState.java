@@ -5,7 +5,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
-
+/**
+ * This file is mostly irrelevant, as it pertains to the Bluetooth status on the client side.
+ * In other words, this file only matters if your Bluetooth status changes while using
+ * the app (i.e. you disable it on your phone)
+ *
+ */
 public class BroadcastReceiver_BTState extends BroadcastReceiver {
 
     Context activityContext;

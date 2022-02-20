@@ -19,6 +19,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+/**
+ *
+ * This is the Java controller file for activity_btle_services.xml . This is where you can find
+ * the click listeners for the three buttons
+ *
+ * */
+
+
 public class Activity_BTLE_Services extends AppCompatActivity implements ExpandableListView.OnChildClickListener {
     private final static String TAG = Activity_BTLE_Services.class.getSimpleName();
     public static final String EXTRA_NAME = "android.iotcasinochips.rfidreader.Activity_BTLE_Services.NAME";
@@ -175,22 +183,29 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         mBTLE_Service_Intent = null;
     }
 
+    // When the expandable group services are clicked, this function is called
     @Override
     public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
 
+        // Get characteristic being clicked on
         BluetoothGattCharacteristic characteristic = characteristics_HashMapList.get(
                 services_ArrayList.get(groupPosition).getUuid().toString())
                 .get(childPosition);
 
+        // If the characteristic has the write property
         if (Utils.hasWriteProperty(characteristic.getProperties()) != 0) {
-            String uuid = characteristic.getUuid().toString();
 
+            // Get the UUID of the characteristic
+            String uuid = characteristic.getUuid().toString();
             Dialog_BTLE_Characteristic dialog_btle_characteristic = new Dialog_BTLE_Characteristic();
 
+            // Set the title of the characteristic to its UUID
             dialog_btle_characteristic.setTitle(uuid);
+
             dialog_btle_characteristic.setService(RFID_reader_service);
             dialog_btle_characteristic.setCharacteristic(characteristic);
 
+            // Show a Dialog_BTLE_Characteristic screen
             dialog_btle_characteristic.show(getFragmentManager(), "Dialog_BTLE_Characteristic");
         } else if (Utils.hasReadProperty(characteristic.getProperties()) != 0) {
             if (RFID_reader_service != null) {
@@ -205,10 +220,12 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         return false;
     }
 
+    // Get services and characteristics from the reader
     public void updateServices() {
 
         if (RFID_reader_service != null) {
 
+            // Clear the service and characteristics storage
             services_ArrayList.clear();
             characteristics_HashMap.clear();
             characteristics_HashMapList.clear();
@@ -217,6 +234,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
 
             for (BluetoothGattService service : servicesList) {
 
+                // Add new services and characteristics to a services and characteristics list
                 services_ArrayList.add(service);
 
                 List<BluetoothGattCharacteristic> characteristicsList = service.getCharacteristics();
@@ -227,9 +245,12 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                     newCharacteristicsList.add(characteristic);
                 }
 
+                // Add the correlating characteristics list to a
+                // hasp map with the service as the index
                 characteristics_HashMapList.put(service.getUuid().toString(), newCharacteristicsList);
             }
 
+            // If services exist, notify that data was changed
             if (servicesList != null && servicesList.size() > 0) {
                 expandableListAdapter.notifyDataSetChanged();
             }

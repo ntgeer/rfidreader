@@ -10,9 +10,9 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
-/*
+/**
 * Class to expand list of RFID devices as they are discovered
- */
+*/
 public class ListAdapter_BTLE_Devices extends ArrayAdapter<BTLE_Device> {
 
     Activity activity;

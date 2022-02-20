@@ -1,5 +1,6 @@
 package android.iotcasinochips.rfidreader;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -15,18 +16,16 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.util.List;
 import java.util.UUID;
 
+
 /**
- * Created by Kelvin on 5/8/16.
+ * Manages connection and data transfer of Bluetooth LE peripheral
  */
 public class Service_BTLE_GATT extends Service {
-    /**
-     * Service for managing connection and data communication with a GATT server hosted on a
-     * given Bluetooth LE device.
-     */
     private final static String TAG = Service_BTLE_GATT.class.getSimpleName();
 
     private BluetoothManager mBluetoothManager;
@@ -47,9 +46,11 @@ public class Service_BTLE_GATT extends Service {
     public final static String EXTRA_DATA = "android.iotcasinochips.rfidreader.Service_BTLE_GATT.EXTRA_DATA";
 
 
-    // Implements callback methods for GATT events that the app cares about.  For example,
-    // connection change and services discovered.
+    // Broadcasts/callback events for GATT events
+    // Broadcast not viewable in Toast message
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
+
+        // Broadcast if connected or disconnected to GATT server
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             String intentAction;
@@ -80,6 +81,7 @@ public class Service_BTLE_GATT extends Service {
             }
         }
 
+        // Broadcast when services discovered
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
 
@@ -91,6 +93,7 @@ public class Service_BTLE_GATT extends Service {
             }
         }
 
+        // Broadcast when a characteristic is read
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt,
                                          BluetoothGattCharacteristic characteristic,
@@ -101,6 +104,7 @@ public class Service_BTLE_GATT extends Service {
             }
         }
 
+        // Broadcast when a characteristic is changed
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
@@ -108,18 +112,25 @@ public class Service_BTLE_GATT extends Service {
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
         }
 
-//        @Override
-//        public void onCharacteristicWrite(BluetoothGatt gatt,
-//                                          BluetoothGattCharacteristic characteristic, int status) {
-//
-//        }
+        // Send broadcast and Toast message when characteristic written
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt,
+                                          BluetoothGattCharacteristic characteristic, int status) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+                Utils.toast(getApplicationContext(), "Sending write data");
+            }
+        }
     };
 
+    // Do something weird with broadcasts.
+    // NOT the same as Toast messages
     private void broadcastUpdate(final String action) {
         final Intent intent = new Intent(action);
         sendBroadcast(intent);
     }
 
+    // Ditto
     private void broadcastUpdate(final String action, final BluetoothGattCharacteristic characteristic) {
 
         final Intent intent = new Intent(action);
@@ -140,6 +151,7 @@ public class Service_BTLE_GATT extends Service {
         sendBroadcast(intent);
     }
 
+    // Gets reference to BTLE service
     public class BTLeServiceBinder extends Binder {
 
         Service_BTLE_GATT getService() {
@@ -147,21 +159,18 @@ public class Service_BTLE_GATT extends Service {
         }
     }
 
+    // Weird binding function
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;
     }
 
-    @Override
-    public void onCreate() {
 
-    }
-
+    // After using a given device, you should make sure that BluetoothGatt.close() is called
+    // such that resources are cleaned up properly.  In this particular example, close() is
+    // invoked when the UI is disconnected from the Service.
     @Override
     public boolean onUnbind(Intent intent) {
-        // After using a given device, you should make sure that BluetoothGatt.close() is called
-        // such that resources are cleaned up properly.  In this particular example, close() is
-        // invoked when the UI is disconnected from the Service.
         close();
         return super.onUnbind(intent);
     }
@@ -203,6 +212,7 @@ public class Service_BTLE_GATT extends Service {
      *         {@code BluetoothGattCallback#onConnectionStateChange(android.bluetooth.BluetoothGatt, int, int)}
      *         callback.
      */
+    @SuppressLint("MissingPermission")
     public boolean connect(final String address) {
 
         if (mBluetoothAdapter == null || address == null) {
@@ -232,6 +242,7 @@ public class Service_BTLE_GATT extends Service {
 
         // We want to directly connect to the device, so we are setting the autoConnect
         // parameter to false.
+        // Maybe we can look into reimplementing this later.
         mBluetoothGatt = device.connectGatt(this, false, mGattCallback);
         Log.d(TAG, "Trying to create a new connection.");
         mBluetoothDeviceAddress = address;
@@ -243,9 +254,8 @@ public class Service_BTLE_GATT extends Service {
     /**
      * Disconnects an existing connection or cancel a pending connection. The disconnection result
      * is reported asynchronously through the
-     * {@code BluetoothGattCallback#onConnectionStateChange(android.bluetooth.BluetoothGatt, int, int)}
-     * callback.
      */
+    @SuppressLint("MissingPermission")
     public void disconnect() {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
@@ -256,9 +266,9 @@ public class Service_BTLE_GATT extends Service {
     }
 
     /**
-     * After using a given BLE device, the app must call this method to ensure resources are
-     * released properly.
-     */
+     * When finished with a device, dismiss all services and release resources from device
+     * */
+    @SuppressLint("MissingPermission")
     public void close() {
 
         if (mBluetoothGatt == null) {
@@ -276,6 +286,7 @@ public class Service_BTLE_GATT extends Service {
      *
      * @param characteristic The characteristic to read from.
      */
+    @SuppressLint("MissingPermission")
     public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
@@ -292,6 +303,7 @@ public class Service_BTLE_GATT extends Service {
      *
      * @param characteristic The characteristic to read from.
      */
+    @SuppressLint("MissingPermission")
     public void writeCharacteristic(BluetoothGattCharacteristic characteristic) {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
@@ -307,6 +319,7 @@ public class Service_BTLE_GATT extends Service {
      * @param characteristic Characteristic to act on.
      * @param enabled If true, enable notification.  False otherwise.
      */
+    @SuppressLint("MissingPermission")
     public void setCharacteristicNotification(BluetoothGattCharacteristic characteristic, boolean enabled) {
 
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {

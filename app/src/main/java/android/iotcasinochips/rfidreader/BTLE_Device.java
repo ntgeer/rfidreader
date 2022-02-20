@@ -7,7 +7,10 @@ import android.content.pm.PackageManager;
 
 import androidx.core.app.ActivityCompat;
 
-
+/**
+ * This file is for handling the components of the BTLE_Device, which in this case,
+ * is only the reader
+ */
 public class BTLE_Device {
 
     private BluetoothDevice bluetoothDevice;

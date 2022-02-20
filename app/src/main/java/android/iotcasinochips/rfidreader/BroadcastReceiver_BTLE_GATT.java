@@ -4,6 +4,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
+/**
+ * This file is for handling broadcasts to the Android app (internal) that
+ * indicate the status of the GATT server and connection.
+ */
 public class BroadcastReceiver_BTLE_GATT extends BroadcastReceiver {
 
     private boolean mConnected = false;
