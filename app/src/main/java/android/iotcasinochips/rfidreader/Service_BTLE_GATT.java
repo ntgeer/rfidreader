@@ -147,7 +147,7 @@ public class Service_BTLE_GATT extends Service {
                                           BluetoothGattCharacteristic characteristic, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
-                Utils.toast(getApplicationContext(), "Sending write data");
+                Log.i("BluetoothGatt", "Sending write data");
             }
         }
     };

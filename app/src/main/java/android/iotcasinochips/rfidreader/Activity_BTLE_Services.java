@@ -166,11 +166,16 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                         BTLE_GATT_Service.writeCharacteristic(characteristic);
                     }
                 }*/
-                if( surferService != null ) {
+                if( surferService != null && surferServiceCharacteristics != null) {
+                    // test to see if it's detecting the click
+                    Utils.toast(getApplicationContext(),"Initialize sent?");
                     byte[] b = {(byte) (2)};
                     surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
                     //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
                     BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
+                } else {
+                    // test to see if it's detecting the click
+                    Utils.toast(getApplicationContext(),"surferService = null");
                 }
             }
         });
@@ -308,7 +313,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
 
             // Clear the SURFER Variables, so if we're no longer connected then the buttons won't do anything
             surferService = null;
-            surferServiceCharacteristics.clear();
+            if (surferServiceCharacteristics!=null)surferServiceCharacteristics.clear();
 
             List<BluetoothGattService> servicesList = BTLE_GATT_Service.getSupportedGattServices();
 
@@ -329,10 +334,11 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 // hasp map with the service as the index
                 characteristics_HashMapList.put(service.getUuid().toString(), newCharacteristicsList);
 
-                // If this is the SURFER Service, initialize the proper variables
-                if(service.getUuid().toString() == surferServiceUUID) {
+                // If this is the SURFER (it should always be due to BTLE filtering)
+                // Had to replace == with .equals
+                if(service.getUuid().toString().equals(surferServiceUUID)) {
                     surferService = service;
-                    surferServiceCharacteristics = characteristics_HashMapList.get(surferService); // This is a supposed to be a pointer/reference, but I'm not fully sure
+                    surferServiceCharacteristics = characteristics_HashMapList.get(service.getUuid().toString()); // This is a supposed to be a pointer/reference, but I'm not fully sure
                 }
             }
 
