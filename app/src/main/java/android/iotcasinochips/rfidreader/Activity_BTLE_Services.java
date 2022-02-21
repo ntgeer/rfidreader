@@ -26,7 +26,6 @@ import java.util.List;
  *
  * */
 
-
 public class Activity_BTLE_Services extends AppCompatActivity implements ExpandableListView.OnChildClickListener {
     private final static String TAG = Activity_BTLE_Services.class.getSimpleName();
     public static final String EXTRA_NAME = "android.iotcasinochips.rfidreader.Activity_BTLE_Services.NAME";
@@ -39,13 +38,62 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
     private HashMap<String, BluetoothGattCharacteristic> characteristics_HashMap;
     private HashMap<String, ArrayList<BluetoothGattCharacteristic>> characteristics_HashMapList;
 
+    // SURFER Service and Characteristics, this is how we'll be accessing them if they're available
+    private BluetoothGattService surferService;
+    private ArrayList<BluetoothGattCharacteristic> surferServiceCharacteristics;
+
     private Intent mBTLE_Service_Intent;
-    private Service_BTLE_GATT RFID_reader_service;
+    private Service_BTLE_GATT BTLE_GATT_Service; // This is really the GATT Controller, not the Specific RFID Reader Service
     private boolean mBTLE_Service_Bound;
     private BroadcastReceiver_BTLE_GATT mGattUpdateReceiver;
 
     private String name;
     private String address;
+
+    // SURFER CHANGE: These are the SURFER UUID's
+    private String surferServiceUUID = "e7560001-fc1d-8db5-ad46-26e5843b5915";
+    private String writeStateCharacteristicUUID = "e7560002-fc1d-8db5-ad46-26e5843b5915";
+    private String writeTargetEPCCharacteristicUUID = "e7560003-fc1d-8db5-ad46-26e5843b5915";
+    private String writeNewEPCCharacteristicUUID = "e7560004-fc1d-8db5-ad46-26e5843b5915";
+    private String readStateCharacteristicUUID = "e7560005-fc1d-8db5-ad46-26e5843b5915";
+    private String packetData1CharacteristicUUID = "e7560006-fc1d-8db5-ad46-26e5843b5915";
+    private String packetData2CharacteristicUUID = "e7560007-fc1d-8db5-ad46-26e5843b5915";
+    private String waveformDataCharacteristicUUID = "e7560008-fc1d-8db5-ad46-26e5843b5915";
+    private String logMessageCharacteristicUUID = "e7560009-fc1d-8db5-ad46-26e5843b5915";
+    private String deviceInformationServiceUUID = "180A";
+    private String hardwareRevisionStringUUID = "2A27";
+
+    // SURFER CHANGE: These are the Characteristic Element Numbers for ArrayList
+    private final static int writeStateCharacteristic = 0;
+    private final static int writeTargetEPCCharacteristic = 1;
+    private final static int writeNewEPCCharacteristic = 2;
+    private final static int readStateCharacteristic = 3;
+    private final static int packetData1Characteristic = 4;
+    private final static int packetData2Characteristic = 5;
+    private final static int waveformDataCharacteristic = 6;
+    private final static int logMessageCharacteristic = 7;
+    private final static int deviceInformationService = 8;
+    private final static int hardwareRevisionString = 9;
+
+    // SURFER CHANGE: Added an Application State
+    private int a_state = UNKNOWN;
+
+    private final static int IDLE_UNCONFIGURED = 0;
+    private final static int IDLE_CONFIGURED = 1;
+    private final static int INITIALIZING = 2;
+    private final static int SEARCHING_APP_SPECD = 3;
+    private final static int SEARCHING_LAST_INV = 4;
+    private final static int INVENTORYING = 5;
+    private final static int TESTING_DTC = 6;
+    private final static int PROG_APP_SPECD = 7;
+    private final static int PROG_LAST_INV = 8;
+    private final static int RECOV_WVFM_MEM = 9;
+    private final static int RESET_ASICS = 10;
+    private final static int KILL_TAG = 11;
+    private final static int PROG_TAG_KILL_PW = 12;
+    private final static int TRACK_APP_SPECD = 13;
+    private final static int TRACK_LAST_INV = 14;
+    private final static int UNKNOWN = 15;
 
     private MainActivity ma;
 
@@ -57,22 +105,22 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
 
             // We've bound to LocalService, cast the IBinder and get LocalService instance
             Service_BTLE_GATT.BTLeServiceBinder binder = (Service_BTLE_GATT.BTLeServiceBinder) service;
-            RFID_reader_service = binder.getService();
+            BTLE_GATT_Service = binder.getService();
             mBTLE_Service_Bound = true;
 
-            if (!RFID_reader_service.initialize()) {
+            if (!BTLE_GATT_Service.initialize()) {
                 Log.e(TAG, "Unable to initialize Bluetooth");
                 finish();
             }
 
             // Connect to the RFID reader.
-            RFID_reader_service.connect(address);
+            BTLE_GATT_Service.connect(address);
         }
 
         // When reader disconnects from app
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
-            RFID_reader_service = null;
+            BTLE_GATT_Service = null;
             mBTLE_Service_Bound = false;
         }
     };
@@ -92,7 +140,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         btnDisconnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                RFID_reader_service.disconnect();
+                BTLE_GATT_Service.disconnect();
             }
         });
 
@@ -115,9 +163,15 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                         characteristic.setValue(b);
                         // Send write to reader
                         Service_BTLE_GATT service;
-                        RFID_reader_service.writeCharacteristic(characteristic);
+                        BTLE_GATT_Service.writeCharacteristic(characteristic);
                     }
                 }*/
+                if( surferService != null ) {
+                    byte[] b = {(byte) (2)};
+                    surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
+                    //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
+                    BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
+                }
             }
         });
 
@@ -125,7 +179,12 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         btnInventory.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                if( surferService != null ) {
+                    byte[] b = {(byte) (5)};
+                    surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
+                    //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
+                    BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
+                }
             }
         });
 
@@ -192,7 +251,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         // TODO: Do we reset the reader when disconnecting from it?
         // TODO: WILL ALSO NEED TO BE CHANGED FOR DISCONNECT BUTTON
 
-        RFID_reader_service.disconnect();
+        BTLE_GATT_Service.disconnect();
 
         // Unbind GATT server and services handler
         unregisterReceiver(mGattUpdateReceiver);
@@ -200,7 +259,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         mBTLE_Service_Intent = null;
     }
 
-    // When the expandable group services are clicked, this function is called
+    // When the expandable group CHARACTERISTICS are clicked, this function is called
     @Override
     public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
 
@@ -219,18 +278,18 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             // Set the title of the characteristic to its UUID
             dialog_btle_characteristic.setTitle(uuid);
 
-            dialog_btle_characteristic.setService(RFID_reader_service);
+            dialog_btle_characteristic.setService(BTLE_GATT_Service);
             dialog_btle_characteristic.setCharacteristic(characteristic);
 
             // Show a Dialog_BTLE_Characteristic screen
             dialog_btle_characteristic.show(getFragmentManager(), "Dialog_BTLE_Characteristic");
         } else if (Utils.hasReadProperty(characteristic.getProperties()) != 0) {
-            if (RFID_reader_service != null) {
-                RFID_reader_service.readCharacteristic(characteristic);
+            if (BTLE_GATT_Service != null) {
+                BTLE_GATT_Service.readCharacteristic(characteristic);
             }
         } else if (Utils.hasNotifyProperty(characteristic.getProperties()) != 0) {
-            if (RFID_reader_service != null) {
-                RFID_reader_service.setCharacteristicNotification(characteristic, true);
+            if (BTLE_GATT_Service != null) {
+                BTLE_GATT_Service.setCharacteristicNotification(characteristic, true);
             }
         }
 
@@ -240,14 +299,18 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
     // Get services and characteristics from the reader
     public void updateServices() {
 
-        if (RFID_reader_service != null) {
+        if (BTLE_GATT_Service != null) {
 
             // Clear the service and characteristics storage
             services_ArrayList.clear();
             characteristics_HashMap.clear();
             characteristics_HashMapList.clear();
 
-            List<BluetoothGattService> servicesList = RFID_reader_service.getSupportedGattServices();
+            // Clear the SURFER Variables, so if we're no longer connected then the buttons won't do anything
+            surferService = null;
+            surferServiceCharacteristics.clear();
+
+            List<BluetoothGattService> servicesList = BTLE_GATT_Service.getSupportedGattServices();
 
             for (BluetoothGattService service : servicesList) {
 
@@ -265,6 +328,12 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 // Add the correlating characteristics list to a
                 // hasp map with the service as the index
                 characteristics_HashMapList.put(service.getUuid().toString(), newCharacteristicsList);
+
+                // If this is the SURFER Service, initialize the proper variables
+                if(service.getUuid().toString() == surferServiceUUID) {
+                    surferService = service;
+                    surferServiceCharacteristics = characteristics_HashMapList.get(surferService); // This is a supposed to be a pointer/reference, but I'm not fully sure
+                }
             }
 
             // If services exist, notify that data was changed
@@ -274,8 +343,205 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         }
     }
 
-    // Change value of data in expandableListAdapter
+    // Change value of data in expandableListAdapter?
     public void updateCharacteristic() {
+        // SURFER CHANGE: SURFER State Machine for Characteristic Handlers
+        // For the moment we can just print log messages for testing
+        if(surferService != null) {
+            if(writeTargetEPCCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
+                // To be Implemented
+
+                BTLE_GATT_Service.changedCharacteristicUUID = null;
+            }
+            else if(writeNewEPCCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
+                // To be Implemented
+
+                BTLE_GATT_Service.changedCharacteristicUUID = null;
+            }
+            else if(readStateCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
+                // Not sure if the peripheral_state byte thing will work like this
+                byte[] peripheral_state = surferServiceCharacteristics.get(readStateCharacteristic).getValue();
+
+                // I was too tired to finish fleshing this out. It essentially doesn't alter the application state, but that's fine because I'm not checking it anywhere for the moment due to a lack
+                // of need because of the low amount of implemented functions/buttons.
+                switch(a_state) {
+                    case IDLE_UNCONFIGURED:
+                        switch(peripheral_state[0]) {
+                            case INITIALIZING:
+                                break;
+                            case RESET_ASICS:
+                                break;
+                            case IDLE_UNCONFIGURED:
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                    case IDLE_CONFIGURED:
+                        switch(peripheral_state[0]) {
+                            case IDLE_CONFIGURED:
+                                break;
+                            case INITIALIZING:
+                                break;
+                            case SEARCHING_APP_SPECD:
+                                break;
+                            case SEARCHING_LAST_INV:
+                                break;
+                            case INVENTORYING:
+                                break;
+                            case TESTING_DTC:
+                                break;
+                            case PROG_APP_SPECD:
+                                break;
+                            case PROG_LAST_INV:
+                                break;
+                            case RECOV_WVFM_MEM:
+                                break;
+                            case RESET_ASICS:
+                                break;
+                            case KILL_TAG:
+                                break;
+                            case PROG_TAG_KILL_PW:
+                                break;
+                            case TRACK_APP_SPECD:
+                                break;
+                            case TRACK_LAST_INV:
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                    case INITIALIZING:
+                        switch(peripheral_state[0]) {
+                            case IDLE_CONFIGURED:
+                                break;
+                            case IDLE_UNCONFIGURED:
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                    case SEARCHING_APP_SPECD:
+                        break;
+                    case SEARCHING_LAST_INV:
+                        switch(peripheral_state[0]) {
+                            default:
+                                break;
+                        }
+                        break;
+                    case INVENTORYING:
+                        switch(peripheral_state[0]) {
+                            default:
+                                break;
+                        }
+                        break;
+                    case TESTING_DTC:
+                        switch(peripheral_state[0]) {
+                            default:
+                                break;
+                        }
+                        break;
+                    case PROG_APP_SPECD:
+                        break;
+                    case PROG_LAST_INV:
+                        switch(peripheral_state[0]) {
+                            default:
+                                break;
+                        }
+                        break;
+                    case RECOV_WVFM_MEM:
+                        switch(peripheral_state[0]) {
+                            default:
+                                break;
+                        }
+                        break;
+                    case RESET_ASICS:
+                        switch(peripheral_state[0]) {
+                            default:
+                                break;
+                        }
+                        break;
+                    case KILL_TAG:
+                        switch(peripheral_state[0]) {
+                            default:
+                                break;
+                        }
+                        break;
+                    case PROG_TAG_KILL_PW:
+                        switch(peripheral_state[0]) {
+                            default:
+                                break;
+                        }
+                        break;
+                    case TRACK_APP_SPECD:
+                        switch(peripheral_state[0]) {
+                            default:
+                                break;
+                        }
+                        break;
+                    case TRACK_LAST_INV:
+                        switch(peripheral_state[0]) {
+                            default:
+                                break;
+                        }
+                        break;
+                    case UNKNOWN:
+                        switch(peripheral_state[0]) {
+                            case IDLE_UNCONFIGURED:
+                                break;
+                            case IDLE_CONFIGURED:
+                                break;
+                            case TESTING_DTC:
+                                break;
+                            case TRACK_APP_SPECD:
+                                break;
+                            case TRACK_LAST_INV:
+                                break;
+                            case INITIALIZING:
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
+                }
+                BTLE_GATT_Service.changedCharacteristicUUID = null;
+            }
+
+            // packetData1 and packetData2 are used for Inventory and Search results
+            else if(packetData1CharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
+                // For Inventory Command, prints out message until RFID Tags List is Fully Implemented
+                Utils.toast(getApplicationContext(), Utils.hexToString(surferServiceCharacteristics.get(readStateCharacteristic).getValue()));
+                BTLE_GATT_Service.changedCharacteristicUUID = null;
+            }
+            else if(packetData2CharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
+                // For Inventory Command, prints out message until RFID Tags List is Fully Implemented
+                Utils.toast(getApplicationContext(), Utils.hexToString(surferServiceCharacteristics.get(readStateCharacteristic).getValue()));
+                BTLE_GATT_Service.changedCharacteristicUUID = null;
+            }
+            else if(waveformDataCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
+                // To be Implemented
+
+                BTLE_GATT_Service.changedCharacteristicUUID = null;
+            }
+            else if(logMessageCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
+                // To be Implemented
+
+                BTLE_GATT_Service.changedCharacteristicUUID = null;
+            }
+            else if(hardwareRevisionStringUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
+                // To be Implemented
+
+                BTLE_GATT_Service.changedCharacteristicUUID = null;
+            }
+            // This one is an error if the surferService Exists
+            else {
+                // To be Implemented
+
+                BTLE_GATT_Service.changedCharacteristicUUID = null;
+            }
+        }
+
+
         expandableListAdapter.notifyDataSetChanged();
     }
 }

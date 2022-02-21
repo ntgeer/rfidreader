@@ -25,6 +25,10 @@ import java.util.UUID;
 /**
  * Manages connection and data transfer of Bluetooth LE peripheral
  */
+/* Overwritten to be our SURFERPeripheral from the IOS code, I don't want to overwrite it
+ * or change it to a different name, because it's a public thing. We can clean up the code later
+ * after proving that it works.
+ */
 public class Service_BTLE_GATT extends Service {
     private final static String TAG = Service_BTLE_GATT.class.getSimpleName();
 
@@ -37,6 +41,28 @@ public class Service_BTLE_GATT extends Service {
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
+
+    // SURFER CHANGE: This is to notify updateCharacteristic which characteristic was changed for the SM
+    public String changedCharacteristicUUID = null;
+
+    /*public int activityState = UNKNOWN;
+
+    private final static int IDLE_UNCONFIGURED = 0;
+    private final static int IDLE_CONFIGURED = 1;
+    private final static int INITIALIZING = 2;
+    private final static int SEARCHING_APP_SPECD = 3;
+    private final static int SEARCHING_LAST_INV = 4;
+    private final static int INVENTORYING = 5;
+    private final static int TESTING_DTC = 6;
+    private final static int PROG_APP_SPECD = 7;
+    private final static int PROG_LAST_INV = 8;
+    private final static int RECOV_WVFM_MEM = 9;
+    private final static int RESET_ASICS = 10;
+    private final static int KILL_TAG = 11;
+    private final static int PROG_TAG_KILL_PW = 12;
+    private final static int TRACK_APP_SPECD = 13;
+    private final static int TRACK_LAST_INV = 14;
+    private final static int UNKNOWN = 15;*/
 
     public final static String ACTION_GATT_CONNECTED = "android.iotcasinochips.rfidreader.Service_BTLE_GATT.ACTION_GATT_CONNECTED";
     public final static String ACTION_GATT_DISCONNECTED = "android.iotcasinochips.rfidreader.Service_BTLE_GATT.ACTION_GATT_DISCONNECTED";
@@ -108,11 +134,14 @@ public class Service_BTLE_GATT extends Service {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
-
+            // This is supposedly the function that deals with unprompted responses. When we change
+            // state data on the MCU it is supposed to send a response back with the respective
+            // characteristics. This is where we'll receive said characteristic.
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
         }
 
         // Send broadcast and Toast message when characteristic written
+        // This is a callback, so once we write this function is called? Need to check
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt,
                                           BluetoothGattCharacteristic characteristic, int status) {
@@ -139,6 +168,9 @@ public class Service_BTLE_GATT extends Service {
 
         // For all other profiles, writes the data formatted in HEX.
         final byte[] data = characteristic.getValue();
+
+        // SURFER CHANGE: Update changedCharacteristicUUID for updateCharacteristic SM
+        changedCharacteristicUUID = characteristic.getUuid().toString();
 
         if (data != null && data.length > 0) {
 
@@ -356,4 +388,8 @@ public class Service_BTLE_GATT extends Service {
 
         return mBluetoothGatt.getServices();
     }
+
+    /* void surferCharacteristicHandler() {
+
+    }*/
 }
