@@ -135,6 +135,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         Button btnDisconnect = (Button) findViewById(R.id.btnDisconnect);
         Button btnInitialize = (Button) findViewById(R.id.btnInitialize);
         Button btnInventory = (Button) findViewById(R.id.btnInventory);
+        Button btnSendBlankEPC = (Button) findViewById(R.id.btnSendBlankEPC);
 
         // Disconnect from reader and return to Scan page
         btnDisconnect.setOnClickListener(new View.OnClickListener() {
@@ -168,11 +169,18 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 }*/
                 if( surferService != null && surferServiceCharacteristics != null) {
                     // test to see if it's detecting the click
-                    Utils.toast(getApplicationContext(),"Initialize sent?");
-                    byte[] b = {(byte) (2)};
-                    surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
-                    //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
-                    BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
+                    // Test to make sure that we're calling the correct Characteristic
+                    if (surferServiceCharacteristics.get(writeStateCharacteristic).getUuid().toString().equals(writeStateCharacteristicUUID)) {
+                        Utils.toast(getApplicationContext(), "Initialize sent?");
+                        byte[] b = {(byte) (2)};
+                        surferServiceCharacteristics.get(writeStateCharacteristic).setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+                        surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
+                        //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
+                        BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
+                    }
+                    else {
+                        Utils.toast(getApplicationContext(), "We're not editing the right Characteristic");
+                    }
                 } else {
                     // test to see if it's detecting the click
                     Utils.toast(getApplicationContext(),"surferService = null");
@@ -184,11 +192,23 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         btnInventory.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if( surferService != null ) {
+                if( surferService != null && surferServiceCharacteristics != null ) {
                     byte[] b = {(byte) (5)};
                     surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
                     //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
                     BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
+                }
+            }
+        });
+
+        // SURFER CHANGE: Need to send the Blank EPC before inventory to prevent EPC Filters for detecting tags properly
+        btnSendBlankEPC.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if( surferService != null && surferServiceCharacteristics != null ) {
+                    byte[] b = {(byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0)}; // Empty EPC of 12 Bytes
+                    surferServiceCharacteristics.get(writeTargetEPCCharacteristic).setValue(b);
+                    BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeTargetEPCCharacteristic));
                 }
             }
         });
@@ -338,7 +358,15 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 // Had to replace == with .equals
                 if(service.getUuid().toString().equals(surferServiceUUID)) {
                     surferService = service;
-                    surferServiceCharacteristics = characteristics_HashMapList.get(service.getUuid().toString()); // This is a supposed to be a pointer/reference, but I'm not fully sure
+                    surferServiceCharacteristics = characteristics_HashMapList.get(surferService.getUuid().toString()); // This is a supposed to be a pointer/reference, but I'm not fully sure
+
+                    BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(readStateCharacteristic), true);
+                    //BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
+                    //BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(writeStateCharacteristic), true);
+                    // SURFER CHANGE: Enable notifications from all of the Characteristics
+                    /*for( BluetoothGattCharacteristic characteristic: surferServiceCharacteristics ) {
+                        BTLE_GATT_Service.setCharacteristicNotification(characteristic, true);
+                    }*/
                 }
             }
 
@@ -356,7 +384,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         if(surferService != null) {
             if(writeTargetEPCCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
                 // To be Implemented
-
+                Utils.toast(getApplicationContext(), "Target EPC Written/Changed");
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
             else if(writeNewEPCCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
@@ -367,53 +395,75 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             else if(readStateCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
                 // Not sure if the peripheral_state byte thing will work like this
                 byte[] peripheral_state = surferServiceCharacteristics.get(readStateCharacteristic).getValue();
-
+                Utils.toast(getApplicationContext(), "Something Received");
                 // I was too tired to finish fleshing this out. It essentially doesn't alter the application state, but that's fine because I'm not checking it anywhere for the moment due to a lack
                 // of need because of the low amount of implemented functions/buttons.
                 switch(a_state) {
                     case IDLE_UNCONFIGURED:
                         switch(peripheral_state[0]) {
                             case INITIALIZING:
+                                a_state = INITIALIZING;
+                                Utils.toast(getApplicationContext(), "Initialized Received");
                                 break;
                             case RESET_ASICS:
+                                a_state = RESET_ASICS;
                                 break;
                             case IDLE_UNCONFIGURED:
+                                a_state = IDLE_UNCONFIGURED;
                                 break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
                     case IDLE_CONFIGURED:
                         switch(peripheral_state[0]) {
                             case IDLE_CONFIGURED:
+                                a_state = IDLE_UNCONFIGURED;
                                 break;
                             case INITIALIZING:
+                                a_state = INITIALIZING;
                                 break;
                             case SEARCHING_APP_SPECD:
+                                a_state = SEARCHING_APP_SPECD;
                                 break;
                             case SEARCHING_LAST_INV:
+                                a_state = SEARCHING_LAST_INV;
                                 break;
                             case INVENTORYING:
+                                a_state = INVENTORYING;
                                 break;
                             case TESTING_DTC:
+                                a_state = TESTING_DTC;
                                 break;
                             case PROG_APP_SPECD:
+                                a_state = PROG_APP_SPECD;
                                 break;
                             case PROG_LAST_INV:
+                                a_state = PROG_LAST_INV;
                                 break;
                             case RECOV_WVFM_MEM:
+                                a_state = RECOV_WVFM_MEM;
                                 break;
                             case RESET_ASICS:
+                                a_state = RESET_ASICS;
                                 break;
                             case KILL_TAG:
+                                a_state = KILL_TAG;
                                 break;
                             case PROG_TAG_KILL_PW:
+                                a_state = PROG_TAG_KILL_PW;
                                 break;
                             case TRACK_APP_SPECD:
+                                a_state = TRACK_APP_SPECD;
                                 break;
                             case TRACK_LAST_INV:
+                                a_state = TRACK_LAST_INV;
                                 break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
@@ -424,6 +474,8 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                             case IDLE_UNCONFIGURED:
                                 break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
@@ -431,19 +483,41 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                         break;
                     case SEARCHING_LAST_INV:
                         switch(peripheral_state[0]) {
+                            case IDLE_CONFIGURED:
+                                a_state = IDLE_CONFIGURED;
+                                break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
                     case INVENTORYING:
                         switch(peripheral_state[0]) {
+                            case IDLE_CONFIGURED:
+                                a_state = IDLE_CONFIGURED;
+                                Log.i(TAG, "Inventory Over");
+                                break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
                     case TESTING_DTC:
                         switch(peripheral_state[0]) {
+                            case IDLE_CONFIGURED:
+                                a_state = IDLE_CONFIGURED;
+                                break;
+                            case TESTING_DTC:
+                                a_state = TESTING_DTC;
+                                break;
+                            case RESET_ASICS:
+                                a_state = RESET_ASICS;
+                                break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
@@ -451,61 +525,117 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                         break;
                     case PROG_LAST_INV:
                         switch(peripheral_state[0]) {
+                            case IDLE_CONFIGURED:
+                                a_state = IDLE_CONFIGURED;
+                                break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
                     case RECOV_WVFM_MEM:
                         switch(peripheral_state[0]) {
+                            case IDLE_CONFIGURED:
+                                // This isn't finished and will need to receive the Waveform FIFO
+                                a_state = IDLE_CONFIGURED;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
                     case RESET_ASICS:
                         switch(peripheral_state[0]) {
+                            case IDLE_UNCONFIGURED:
+                                a_state = IDLE_UNCONFIGURED;
+                                break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
                     case KILL_TAG:
                         switch(peripheral_state[0]) {
+                            case IDLE_CONFIGURED:
+                                a_state = IDLE_CONFIGURED;
+                                break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
                     case PROG_TAG_KILL_PW:
                         switch(peripheral_state[0]) {
+                            case IDLE_CONFIGURED:
+                                a_state = IDLE_CONFIGURED;
+                                break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
                     case TRACK_APP_SPECD:
                         switch(peripheral_state[0]) {
+                            case IDLE_CONFIGURED:
+                                a_state = IDLE_CONFIGURED;
+                                break;
+                            case TRACK_APP_SPECD:
+                                a_state = TRACK_APP_SPECD;
+                                break;
+                            case RESET_ASICS:
+                                a_state = RESET_ASICS;
+                                break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
                     case TRACK_LAST_INV:
                         switch(peripheral_state[0]) {
+                            case IDLE_CONFIGURED:
+                                a_state = IDLE_CONFIGURED;
+                                break;
+                            case TRACK_LAST_INV:
+                                a_state = TRACK_LAST_INV;
+                                break;
+                            case RESET_ASICS:
+                                a_state = RESET_ASICS;
+                                break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;
                     case UNKNOWN:
+                        Log.i(TAG, "Exiting Unkown State");
                         switch(peripheral_state[0]) {
                             case IDLE_UNCONFIGURED:
+                                a_state = IDLE_UNCONFIGURED;
                                 break;
                             case IDLE_CONFIGURED:
+                                a_state = IDLE_CONFIGURED;
                                 break;
                             case TESTING_DTC:
+                                a_state = TESTING_DTC;
                                 break;
                             case TRACK_APP_SPECD:
+                                a_state = TRACK_APP_SPECD;
                                 break;
                             case TRACK_LAST_INV:
+                                a_state = TRACK_LAST_INV;
                                 break;
                             case INITIALIZING:
+                                a_state = INITIALIZING;
                                 break;
                             default:
+                                a_state = peripheral_state[0];
+                                Log.i(TAG, "Incompatible State Error!");
                                 break;
                         }
                         break;

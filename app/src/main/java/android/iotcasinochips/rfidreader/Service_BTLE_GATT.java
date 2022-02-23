@@ -127,6 +127,7 @@ public class Service_BTLE_GATT extends Service {
 
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+                Log.i("BluetoothGatt", "Characteristic Data Read");
             }
         }
 
@@ -138,6 +139,7 @@ public class Service_BTLE_GATT extends Service {
             // state data on the MCU it is supposed to send a response back with the respective
             // characteristics. This is where we'll receive said characteristic.
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+            Log.i("BluetoothGatt", "Characteristic Data Changed");
         }
 
         // Send broadcast and Toast message when characteristic written
@@ -147,7 +149,16 @@ public class Service_BTLE_GATT extends Service {
                                           BluetoothGattCharacteristic characteristic, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
-                Log.i("BluetoothGatt", "Sending write data");
+                Log.i("BluetoothGatt", "Wrote Data");
+            }
+            else if (status == BluetoothGatt.GATT_INVALID_ATTRIBUTE_LENGTH ) {
+                Log.i("BluetoothGatt", "Write Invalid Attribute Length");
+            }
+            else if( status == BluetoothGatt.GATT_WRITE_NOT_PERMITTED ) {
+                Log.i( "BluetoothGatt", "Write not Permitted");
+            }
+            else {
+                Log.i("BluetoothGatt", "Write Failed for Unkown Reason");
             }
         }
     };
@@ -365,9 +376,12 @@ public class Service_BTLE_GATT extends Service {
                 UUID.fromString(getString(R.string.CLIENT_CHARACTERISTIC_CONFIG)));
 
         if (enabled) {
-            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+            // SURFER CHANGE: Changed to use an Indication, so that we will receive responses
+            //descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+            descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
         }
         else {
+            //descriptor.setValue(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
             descriptor.setValue(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
         }
 
