@@ -169,11 +169,18 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 }*/
                 if( surferService != null && surferServiceCharacteristics != null) {
                     // test to see if it's detecting the click
-                    Utils.toast(getApplicationContext(),"Initialize sent?");
-                    byte[] b = {(byte) (2)};
-                    surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
-                    //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
-                    BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
+                    // Test to make sure that we're calling the correct Characteristic
+                    if (surferServiceCharacteristics.get(writeStateCharacteristic).getUuid().toString().equals(writeStateCharacteristicUUID)) {
+                        Utils.toast(getApplicationContext(), "Initialize sent?");
+                        byte[] b = {(byte) (2)};
+                        surferServiceCharacteristics.get(writeStateCharacteristic).setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+                        surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
+                        //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
+                        BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
+                    }
+                    else {
+                        Utils.toast(getApplicationContext(), "We're not editing the right Characteristic");
+                    }
                 } else {
                     // test to see if it's detecting the click
                     Utils.toast(getApplicationContext(),"surferService = null");
