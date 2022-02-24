@@ -22,7 +22,7 @@ import java.util.List;
 /**
  *
  * This is the Java controller file for activity_btle_services.xml . This is where you can find
- * the click listeners for the three buttons
+ * the click listeners for the buttons
  *
  * */
 
@@ -136,6 +136,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         Button btnInitialize = (Button) findViewById(R.id.btnInitialize);
         Button btnInventory = (Button) findViewById(R.id.btnInventory);
         Button btnSendBlankEPC = (Button) findViewById(R.id.btnSendBlankEPC);
+        Button btnReset = (Button) findViewById(R.id.btnReset);
 
         // Disconnect from reader and return to Scan page
         btnDisconnect.setOnClickListener(new View.OnClickListener() {
@@ -149,24 +150,6 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         btnInitialize.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // Send 02 to e7560002-fc1d-8db5-ad46-26e5843b5915
-
-                // Couldn't figure out the best way to get a characteristic based on UUID.
-                // I can think of a few ways, but I figured I'd let you do this since you know more
-                // about what this SHOULD look like for the final product.
-                // (I guess I'll let you do initialize since it's really only sending 0x02)
-
-                /*BluetoothGattCharacteristic characteristic = characteristics_HashMap.get(services_ArrayList.get(x).getUuid().toString());
-                if (characteristic.getUuid().toString() == "e7560002-fc1d-8db5-ad46-26e5843b5915"){
-                    if (Utils.hasWriteProperty(characteristic.getProperties()) != 0) {
-                        byte[] b = {(byte) 2};
-                        // Set value of write from what was typed
-                        characteristic.setValue(b);
-                        // Send write to reader
-                        Service_BTLE_GATT service;
-                        BTLE_GATT_Service.writeCharacteristic(characteristic);
-                    }
-                }*/
                 if( surferService != null && surferServiceCharacteristics != null) {
                     // test to see if it's detecting the click
                     // Test to make sure that we're calling the correct Characteristic
@@ -209,6 +192,19 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                     byte[] b = {(byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0)}; // Empty EPC of 12 Bytes
                     surferServiceCharacteristics.get(writeTargetEPCCharacteristic).setValue(b);
                     BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeTargetEPCCharacteristic));
+                }
+            }
+        });
+
+        // SURFER CHANGE: Reset button to get SURFER into initial state
+        btnReset.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if( surferService != null && surferServiceCharacteristics != null ) {
+                    byte[] b = {(byte) (10)};
+                    surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
+                    //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
+                    BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
                 }
             }
         });

@@ -28,7 +28,7 @@
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/buttons"
+            android:id="@+id/buttons_row1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="0dp"
@@ -56,12 +56,26 @@
                 android:layout_height="wrap_content"
                 android:text="Inventory" />
 
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/buttons_row2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
             <Button
                 android:id="@+id/btnSendBlankEPC"
-                android:layout_width="58dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="EPC" />
+                android:text="Blank EPC" />
 
+            <Button
+                android:id="@+id/btnReset"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Reset" />
         </LinearLayout>
 
         <LinearLayout
