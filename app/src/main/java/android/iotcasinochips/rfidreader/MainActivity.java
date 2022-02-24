@@ -1,5 +1,7 @@
 package android.iotcasinochips.rfidreader;
 
+import static androidx.core.content.PermissionChecker.PERMISSION_GRANTED;
+
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -29,6 +31,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public static final int REQUEST_ENABLE_BT = 1;
     public static final int BTLE_SERVICES = 2;
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1834;
 
     private HashMap<String, BTLE_Device> mBTDevicesHashMap;
     private ArrayList<BTLE_Device> mBTDevicesArrayList;
@@ -157,13 +160,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btn_scan:
                 Utils.toast(getApplicationContext(), "Scan Button Pressed");
 
-                // If btnInventory pressed when scanner not scanning, start the scan
-                if (!mBTLeScanner.isScanning()) {
-                    startScan();
+                // Check for location permission
+                int isLocationPermissionGranted = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION);
+
+                if (isLocationPermissionGranted == PERMISSION_GRANTED) {
+                    // If scan button pressed when scanner not scanning, start the scan
+                    if (!mBTLeScanner.isScanning()) {
+                        startScan();
+                    }
+                    // If scan button pressed when scanner is scanning, stop the scan
+                    else {
+                        stopScan();
+                    }
                 }
-                // If btnInventory pressed when scanner is scanning, stop the scan
                 else {
-                    stopScan();
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
                 }
 
                 break;
@@ -173,6 +184,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     }
 
+    // Result of requesting permissions
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults){
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
+        } else {
+            // If scan button pressed when scanner not scanning, start the scan
+            if (!mBTLeScanner.isScanning()) {
+                startScan();
+            }
+            // If scan button pressed when scanner is scanning, stop the scan
+            else {
+                stopScan();
+            }
+        }
+    }
+    
     // Add device to list only once
     public void addDevice(BluetoothDevice device, int rssi) {
 
