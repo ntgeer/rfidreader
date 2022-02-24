@@ -194,6 +194,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             public void onClick(View view) {
                 if( surferService != null && surferServiceCharacteristics != null ) {
                     byte[] b = {(byte) (5)};
+                    surferServiceCharacteristics.get(writeStateCharacteristic).setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
                     surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
                     //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
                     BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
@@ -207,6 +208,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             public void onClick(View view) {
                 if( surferService != null && surferServiceCharacteristics != null ) {
                     byte[] b = {(byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0)}; // Empty EPC of 12 Bytes
+                    surferServiceCharacteristics.get(writeStateCharacteristic).setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
                     surferServiceCharacteristics.get(writeTargetEPCCharacteristic).setValue(b);
                     BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeTargetEPCCharacteristic));
                 }
@@ -361,7 +363,9 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                     surferServiceCharacteristics = characteristics_HashMapList.get(surferService.getUuid().toString()); // This is a supposed to be a pointer/reference, but I'm not fully sure
 
                     BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(readStateCharacteristic), true);
-                    //BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
+                    BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
+                    BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(packetData1Characteristic), true);
+                    BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(packetData2Characteristic), true);
                     //BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(writeStateCharacteristic), true);
                     // SURFER CHANGE: Enable notifications from all of the Characteristics
                     /*for( BluetoothGattCharacteristic characteristic: surferServiceCharacteristics ) {
