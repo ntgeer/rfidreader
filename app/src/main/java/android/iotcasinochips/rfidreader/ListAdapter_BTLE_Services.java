@@ -138,6 +138,11 @@ public class ListAdapter_BTLE_Services extends BaseExpandableListAdapter {
             sb.append("N");
         }
 
+        // SURFER change: If characteristic has Indicate property, add "I" to the label
+        if (Utils.hasIndicateProperty(properties) != 0) {
+            sb.append("I");
+        }
+
         // Display the properties label string
         tv_property.setText(sb.toString());
 

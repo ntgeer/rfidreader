@@ -14,6 +14,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -99,7 +100,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
 
     private ServiceConnection mBTLE_ServiceConnection = new ServiceConnection() {
 
-        // When the phone attempts to connect to the RFID reader, this is called automatically
+        // Triggered when this ServiceConnection is triggered
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
 
@@ -117,13 +118,71 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             BTLE_GATT_Service.connect(address);
         }
 
-        // When reader disconnects from app
+        // Triggered when this ServiceConnection is killed
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             BTLE_GATT_Service = null;
             mBTLE_Service_Bound = false;
         }
     };
+
+    /**
+    * Send command based on int
+    **/
+    public void sendCommand(int commandInt){
+        // Cast commandInt to a byte
+        byte[] b = {(byte) (commandInt)};
+
+        // Set write type of writeStateCharacteristic
+        surferServiceCharacteristics.get(writeStateCharacteristic).setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+
+        // Set value to b
+        surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
+
+        // Write characteristic
+        BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
+    }
+
+    // Send command based on given byte array
+    public void sendEPC(byte[] b){
+        // Set write type of writeTargetEPCCharacteristic
+        surferServiceCharacteristics.get(writeTargetEPCCharacteristic).setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+
+        // Set value to b
+        surferServiceCharacteristics.get(writeTargetEPCCharacteristic).setValue(b);
+
+        // Write EPC
+        BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeTargetEPCCharacteristic));
+    }
+
+    // Function to update buttons
+    public void updateButtons(int state){
+        Button btnInitialize = (Button) findViewById(R.id.btnInitialize);
+        Button btnInventory = (Button) findViewById(R.id.btnInventory);
+        Button btnSendBlankEPC = (Button) findViewById(R.id.btnSendBlankEPC);
+        Button btnReset = (Button) findViewById(R.id.btnReset);
+        switch(state){
+            case IDLE_CONFIGURED:
+            case INVENTORYING:
+                // Enable initialize
+                btnInitialize.setEnabled(false);
+                // Disable buttons before initializing
+                btnInventory.setEnabled(true);
+                btnSendBlankEPC.setEnabled(true);
+                btnReset.setEnabled(true);
+                break;
+            default:
+                // Enable initialize
+                btnInitialize.setEnabled(true);
+                // Disable buttons before initializing
+                btnInventory.setEnabled(false);
+                btnSendBlankEPC.setEnabled(false);
+                btnReset.setEnabled(false);
+                break;
+        }
+
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -154,12 +213,8 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                     // test to see if it's detecting the click
                     // Test to make sure that we're calling the correct Characteristic
                     if (surferServiceCharacteristics.get(writeStateCharacteristic).getUuid().toString().equals(writeStateCharacteristicUUID)) {
-                        Utils.toast(getApplicationContext(), "Initialize sent?");
-                        byte[] b = {(byte) (2)};
-                        surferServiceCharacteristics.get(writeStateCharacteristic).setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
-                        surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
-                        //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
-                        BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
+                        // Cast 2 to a byte
+                        sendCommand(2);
                     }
                     else {
                         Utils.toast(getApplicationContext(), "We're not editing the right Characteristic");
@@ -176,10 +231,8 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             @Override
             public void onClick(View view) {
                 if( surferService != null && surferServiceCharacteristics != null ) {
-                    byte[] b = {(byte) (5)};
-                    surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
-                    //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
-                    BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
+                    BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
+                    sendCommand(5);
                 }
             }
         });
@@ -190,8 +243,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             public void onClick(View view) {
                 if( surferService != null && surferServiceCharacteristics != null ) {
                     byte[] b = {(byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0)}; // Empty EPC of 12 Bytes
-                    surferServiceCharacteristics.get(writeTargetEPCCharacteristic).setValue(b);
-                    BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeTargetEPCCharacteristic));
+                    sendEPC(b);
                 }
             }
         });
@@ -201,10 +253,8 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             @Override
             public void onClick(View view) {
                 if( surferService != null && surferServiceCharacteristics != null ) {
-                    byte[] b = {(byte) (10)};
-                    surferServiceCharacteristics.get(writeStateCharacteristic).setValue(b);
-                    //expandableListAdapter.notifyDataSetChanged(); // Temporary, and just to see if we're pushing the values correctly
-                    BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
+                    // Send reset command
+                    sendCommand(10);
                 }
             }
         });
@@ -246,6 +296,8 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         // Instantiate service handler (Activity_BTLE_Services) with GATT server (Service_BTLE_GATT)
         mBTLE_Service_Intent = new Intent(this, Service_BTLE_GATT.class);
         bindService(mBTLE_Service_Intent, mBTLE_ServiceConnection, Context.BIND_AUTO_CREATE);
+
+        // Start service to trigger "onServiceConnected"
         startService(mBTLE_Service_Intent);
     }
 
@@ -312,6 +364,10 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             if (BTLE_GATT_Service != null) {
                 BTLE_GATT_Service.setCharacteristicNotification(characteristic, true);
             }
+        } else if (Utils.hasIndicateProperty(characteristic.getProperties()) != 0) {
+            if (BTLE_GATT_Service != null) {
+                BTLE_GATT_Service.setCharacteristicIndication(characteristic, true);
+            }
         }
 
         return false;
@@ -354,10 +410,13 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 // Had to replace == with .equals
                 if(service.getUuid().toString().equals(surferServiceUUID)) {
                     surferService = service;
+
+                    Log.i("Activity_BTLE_Services", "SURFER found");
                     surferServiceCharacteristics = characteristics_HashMapList.get(surferService.getUuid().toString()); // This is a supposed to be a pointer/reference, but I'm not fully sure
 
-                    BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(readStateCharacteristic), true);
-                    //BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
+                    BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(readStateCharacteristic), true);
+                    BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
+                    BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(packetData2Characteristic), true);
                     //BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(writeStateCharacteristic), true);
                     // SURFER CHANGE: Enable notifications from all of the Characteristics
                     /*for( BluetoothGattCharacteristic characteristic: surferServiceCharacteristics ) {
@@ -391,7 +450,11 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             else if(readStateCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
                 // Not sure if the peripheral_state byte thing will work like this
                 byte[] peripheral_state = surferServiceCharacteristics.get(readStateCharacteristic).getValue();
-                Utils.toast(getApplicationContext(), "Something Received");
+                Log.i("StateChanged", "Something Received");
+
+                // Enable/Disable correct buttons
+                updateButtons(peripheral_state[0]);
+
                 // I was too tired to finish fleshing this out. It essentially doesn't alter the application state, but that's fine because I'm not checking it anywhere for the moment due to a lack
                 // of need because of the low amount of implemented functions/buttons.
                 switch(a_state) {
@@ -642,12 +705,14 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             // packetData1 and packetData2 are used for Inventory and Search results
             else if(packetData1CharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
                 // For Inventory Command, prints out message until RFID Tags List is Fully Implemented
-                Utils.toast(getApplicationContext(), Utils.hexToString(surferServiceCharacteristics.get(readStateCharacteristic).getValue()));
+                //Utils.toast(getApplicationContext(), Utils.hexToString(surferServiceCharacteristics.get(readStateCharacteristic).getValue()));
+                Utils.toast(getApplicationContext(), "Inventory information received");
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
             else if(packetData2CharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
                 // For Inventory Command, prints out message until RFID Tags List is Fully Implemented
-                Utils.toast(getApplicationContext(), Utils.hexToString(surferServiceCharacteristics.get(readStateCharacteristic).getValue()));
+                Utils.toast(getApplicationContext(), "Inventory information received");
+                //Utils.toast(getApplicationContext(), Utils.hexToString(surferServiceCharacteristics.get(readStateCharacteristic).getValue()));
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
             else if(waveformDataCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {

@@ -70,6 +70,11 @@ public class Utils {
         return property & BluetoothGattCharacteristic.PROPERTY_NOTIFY;
     }
 
+    // Convenient function to check if the characteristic has the Notify property
+    public static int hasIndicateProperty(int property) {
+        return property & BluetoothGattCharacteristic.PROPERTY_INDICATE;
+    }
+
     public static void toast(Context context, String string) {
 
         Toast toast = Toast.makeText(context, string, Toast.LENGTH_SHORT);
