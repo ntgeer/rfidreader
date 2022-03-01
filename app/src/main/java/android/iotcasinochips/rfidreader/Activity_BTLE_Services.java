@@ -127,8 +127,8 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
     };
 
     /**
-    * Send command based on int
-    **/
+     * Send command based on int
+     **/
     public void sendCommand(int commandInt){
         // Cast commandInt to a byte
         byte[] b = {(byte) (commandInt)};
@@ -415,6 +415,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                     surferServiceCharacteristics = characteristics_HashMapList.get(surferService.getUuid().toString()); // This is a supposed to be a pointer/reference, but I'm not fully sure
 
                     BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(readStateCharacteristic), true);
+                    BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
                     BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
                     BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(packetData2Characteristic), true);
                     //BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(writeStateCharacteristic), true);
