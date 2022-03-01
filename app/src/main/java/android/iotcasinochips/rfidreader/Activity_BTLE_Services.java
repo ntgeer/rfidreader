@@ -231,8 +231,8 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             @Override
             public void onClick(View view) {
                 if( surferService != null && surferServiceCharacteristics != null ) {
-                    BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
                     sendCommand(5);
+                    //BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
                 }
             }
         });
