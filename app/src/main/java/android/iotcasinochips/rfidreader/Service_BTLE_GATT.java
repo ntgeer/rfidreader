@@ -1,6 +1,7 @@
 package android.iotcasinochips.rfidreader;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -42,6 +43,8 @@ public class Service_BTLE_GATT extends Service {
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
 
+    public BluetoothGattCharacteristic checkDescriptor;
+
     // SURFER CHANGE: This is to notify updateCharacteristic which characteristic was changed for the SM
     public String changedCharacteristicUUID = null;
 
@@ -77,6 +80,7 @@ public class Service_BTLE_GATT extends Service {
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
 
         // Broadcast if connected or disconnected to GATT server
+        @SuppressLint("MissingPermission")
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             String intentAction;
@@ -126,7 +130,8 @@ public class Service_BTLE_GATT extends Service {
                                       int status){
 
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.i("BluetoothGattDescriptor", "Descriptor Changed");
+                Log.i("BluetoothGattDescriptor", "Descriptor Changed: " + descriptor.getCharacteristic().getUuid().toString());
+                checkDescriptor = descriptor.getCharacteristic();
             }
         }
 

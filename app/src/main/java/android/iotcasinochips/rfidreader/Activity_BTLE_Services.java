@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -52,17 +53,17 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
     private String address;
 
     // SURFER CHANGE: These are the SURFER UUID's
-    private String surferServiceUUID = "e7560001-fc1d-8db5-ad46-26e5843b5915";
-    private String writeStateCharacteristicUUID = "e7560002-fc1d-8db5-ad46-26e5843b5915";
-    private String writeTargetEPCCharacteristicUUID = "e7560003-fc1d-8db5-ad46-26e5843b5915";
-    private String writeNewEPCCharacteristicUUID = "e7560004-fc1d-8db5-ad46-26e5843b5915";
-    private String readStateCharacteristicUUID = "e7560005-fc1d-8db5-ad46-26e5843b5915";
-    private String packetData1CharacteristicUUID = "e7560006-fc1d-8db5-ad46-26e5843b5915";
-    private String packetData2CharacteristicUUID = "e7560007-fc1d-8db5-ad46-26e5843b5915";
-    private String waveformDataCharacteristicUUID = "e7560008-fc1d-8db5-ad46-26e5843b5915";
-    private String logMessageCharacteristicUUID = "e7560009-fc1d-8db5-ad46-26e5843b5915";
-    private String deviceInformationServiceUUID = "180A";
-    private String hardwareRevisionStringUUID = "2A27";
+    private final static String surferServiceUUID = "e7560001-fc1d-8db5-ad46-26e5843b5915";
+    private final static String writeStateCharacteristicUUID = "e7560002-fc1d-8db5-ad46-26e5843b5915";
+    private final static String writeTargetEPCCharacteristicUUID = "e7560003-fc1d-8db5-ad46-26e5843b5915";
+    private final static String writeNewEPCCharacteristicUUID = "e7560004-fc1d-8db5-ad46-26e5843b5915";
+    public final static String readStateCharacteristicUUID = "e7560005-fc1d-8db5-ad46-26e5843b5915";
+    private final static String packetData1CharacteristicUUID = "e7560006-fc1d-8db5-ad46-26e5843b5915";
+    private final static String packetData2CharacteristicUUID = "e7560007-fc1d-8db5-ad46-26e5843b5915";
+    private final static String waveformDataCharacteristicUUID = "e7560008-fc1d-8db5-ad46-26e5843b5915";
+    private final static String logMessageCharacteristicUUID = "e7560009-fc1d-8db5-ad46-26e5843b5915";
+    private final static String deviceInformationServiceUUID = "180A";
+    private final static String hardwareRevisionStringUUID = "2A27";
 
     // SURFER CHANGE: These are the Characteristic Element Numbers for ArrayList
     private final static int writeStateCharacteristic = 0;
@@ -78,6 +79,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
 
     // SURFER CHANGE: Added an Application State
     private int a_state = UNKNOWN;
+    private boolean initialByte = true;
 
     private final static int IDLE_UNCONFIGURED = 0;
     private final static int IDLE_CONFIGURED = 1;
@@ -201,6 +203,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         btnDisconnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Log.i("Buttons", "Disconnect button pressed.");
                 BTLE_GATT_Service.disconnect();
             }
         });
@@ -213,6 +216,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                     // test to see if it's detecting the click
                     // Test to make sure that we're calling the correct Characteristic
                     if (surferServiceCharacteristics.get(writeStateCharacteristic).getUuid().toString().equals(writeStateCharacteristicUUID)) {
+                        Log.i("Buttons", "Initialize button pressed.");
                         // Cast 2 to a byte
                         sendCommand(2);
                     }
@@ -231,6 +235,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             @Override
             public void onClick(View view) {
                 if( surferService != null && surferServiceCharacteristics != null ) {
+                    Log.i("Buttons", "Inventory button pressed.");
                     sendCommand(5);
                     //BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
                 }
@@ -242,8 +247,30 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             @Override
             public void onClick(View view) {
                 if( surferService != null && surferServiceCharacteristics != null ) {
-                    byte[] b = {(byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0), (byte) (0)}; // Empty EPC of 12 Bytes
-                    sendEPC(b);
+                    Log.i("Buttons", "SendBlankEPC button pressed.");
+                    byte[] b = {};
+                    if (initialByte)
+                        sendEPC(b);
+
+                    switch (BTLE_GATT_Service.checkDescriptor.getUuid().toString()){
+                        case (readStateCharacteristicUUID):
+                            BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
+                            break;
+                        case (writeTargetEPCCharacteristicUUID):
+                            BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeNewEPCCharacteristic), true);
+                            break;
+                        case (packetData2CharacteristicUUID):
+                            BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(readStateCharacteristic), true);
+                            break;
+                        case (writeNewEPCCharacteristicUUID):
+                            BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
+                            break;
+                        case (packetData1CharacteristicUUID):
+                            BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(packetData2Characteristic), true);
+                            break;
+                        default: BTLE_GATT_Service.readCharacteristic(surferServiceCharacteristics.get(readStateCharacteristic));
+                            break;
+                    }
                 }
             }
         });
@@ -253,6 +280,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             @Override
             public void onClick(View view) {
                 if( surferService != null && surferServiceCharacteristics != null ) {
+                    Log.i("Buttons", "Reset button pressed.");
                     // Send reset command
                     sendCommand(10);
                 }
@@ -320,9 +348,6 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
 
         // Disconnect from reader
         Utils.toast(getApplicationContext(), "Disconnected from reader");
-
-        // TODO: Do we reset the reader when disconnecting from it?
-        // TODO: WILL ALSO NEED TO BE CHANGED FOR DISCONNECT BUTTON
 
         BTLE_GATT_Service.disconnect();
 
@@ -414,15 +439,9 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                     Log.i("Activity_BTLE_Services", "SURFER found");
                     surferServiceCharacteristics = characteristics_HashMapList.get(surferService.getUuid().toString()); // This is a supposed to be a pointer/reference, but I'm not fully sure
 
-                    BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(readStateCharacteristic), true);
-                    BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
-                    BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
-                    BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(packetData2Characteristic), true);
-                    //BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(writeStateCharacteristic), true);
-                    // SURFER CHANGE: Enable notifications from all of the Characteristics
-                    /*for( BluetoothGattCharacteristic characteristic: surferServiceCharacteristics ) {
-                        BTLE_GATT_Service.setCharacteristicNotification(characteristic, true);
-                    }*/
+                    if (surferServiceCharacteristics != null) {
+                        BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(readStateCharacteristic), true);
+                    } else {Log.i("SurferNullError", "Surfer characteristics not found");}
                 }
             }
 
@@ -440,18 +459,19 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         if(surferService != null) {
             if(writeTargetEPCCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
                 // To be Implemented
+                initialByte = false;
                 Utils.toast(getApplicationContext(), "Target EPC Written/Changed");
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
             else if(writeNewEPCCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
                 // To be Implemented
-
+                Utils.toast(getApplicationContext(), "New EPC Written/Changed");
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
             else if(readStateCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
                 // Not sure if the peripheral_state byte thing will work like this
                 byte[] peripheral_state = surferServiceCharacteristics.get(readStateCharacteristic).getValue();
-                Log.i("StateChanged", "Something Received");
+                Log.i("StateChanged", "State Changed");
 
                 // Enable/Disable correct buttons
                 updateButtons(peripheral_state[0]);
@@ -673,7 +693,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                         }
                         break;
                     case UNKNOWN:
-                        Log.i(TAG, "Exiting Unkown State");
+                        Log.i(TAG, "Exiting Unknown State");
                         switch(peripheral_state[0]) {
                             case IDLE_UNCONFIGURED:
                                 a_state = IDLE_UNCONFIGURED;
