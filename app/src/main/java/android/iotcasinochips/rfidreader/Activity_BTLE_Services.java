@@ -728,11 +728,12 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 // For Inventory Command, prints out message until RFID Tags List is Fully Implemented
                 //Utils.toast(getApplicationContext(), Utils.hexToString(surferServiceCharacteristics.get(readStateCharacteristic).getValue()));
                 Utils.toast(getApplicationContext(), "Inventory information received");
+                Log.i("TagInfo", Utils.hexToString(surferServiceCharacteristics.get(packetData1Characteristic).getValue()));
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
             else if(packetData2CharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
                 // For Inventory Command, prints out message until RFID Tags List is Fully Implemented
-                Utils.toast(getApplicationContext(), "Inventory information received");
+                Utils.toast(getApplicationContext(), "Inventory 2 information received");
                 //Utils.toast(getApplicationContext(), Utils.hexToString(surferServiceCharacteristics.get(readStateCharacteristic).getValue()));
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
