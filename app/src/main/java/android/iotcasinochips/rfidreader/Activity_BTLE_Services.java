@@ -16,6 +16,7 @@ import android.widget.ExpandableListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -43,6 +44,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
     // SURFER Service and Characteristics, this is how we'll be accessing them if they're available
     private BluetoothGattService surferService;
     private ArrayList<BluetoothGattCharacteristic> surferServiceCharacteristics;
+    private ArrayList<RFID_Tag> surferTagArrayList;
 
     private Intent mBTLE_Service_Intent;
     private Service_BTLE_GATT BTLE_GATT_Service; // This is really the GATT Controller, not the Specific RFID Reader Service
@@ -163,6 +165,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         Button btnInventory = (Button) findViewById(R.id.btnInventory);
         Button btnSendBlankEPC = (Button) findViewById(R.id.btnSendBlankEPC);
         Button btnReset = (Button) findViewById(R.id.btnReset);
+        Button btnTagList = (Button) findViewById(R.id.btnTagList);
         switch(state){
             case IDLE_CONFIGURED:
             case INVENTORYING:
@@ -172,6 +175,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 btnInventory.setEnabled(true);
                 btnSendBlankEPC.setEnabled(true);
                 btnReset.setEnabled(true);
+                btnTagList.setEnabled(true);
                 break;
             default:
                 // Enable initialize
@@ -180,6 +184,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 btnInventory.setEnabled(false);
                 btnSendBlankEPC.setEnabled(false);
                 btnReset.setEnabled(false);
+                btnTagList.setEnabled(false);
                 break;
         }
 
@@ -198,6 +203,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         Button btnInventory = (Button) findViewById(R.id.btnInventory);
         Button btnSendBlankEPC = (Button) findViewById(R.id.btnSendBlankEPC);
         Button btnReset = (Button) findViewById(R.id.btnReset);
+        Button btnTagList = (Button) findViewById(R.id.btnTagList);
 
         // Disconnect from reader and return to Scan page
         btnDisconnect.setOnClickListener(new View.OnClickListener() {
@@ -287,6 +293,18 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             }
         });
 
+        btnTagList.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // ADD INFORMATION HERE ONCE WE'VE FINISHED EVERYTHING FOR THE CLASSES
+                Intent intent2 = new Intent(view.getContext(), RFID_Taglist.class);
+                Bundle args = new Bundle();
+                args.putSerializable(RFID_Taglist.TAG_ARRAY_LIST, (Serializable)surferTagArrayList );
+                intent2.putExtra(RFID_Taglist.TAG_BUNDLE, args);
+                startActivity(intent2);
+            }
+        });
+
         // Get name and address
         Intent intent = getIntent();
         name = intent.getStringExtra(Activity_BTLE_Services.EXTRA_NAME);
@@ -296,6 +314,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         services_ArrayList = new ArrayList<>();
         characteristics_HashMap = new HashMap<>();
         characteristics_HashMapList = new HashMap<>();
+        surferTagArrayList = new ArrayList<>();
 
         // Instantiate services list
         expandableListAdapter = new ListAdapter_BTLE_Services(
@@ -728,7 +747,22 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 // For Inventory Command, prints out message until RFID Tags List is Fully Implemented
                 //Utils.toast(getApplicationContext(), Utils.hexToString(surferServiceCharacteristics.get(readStateCharacteristic).getValue()));
                 Utils.toast(getApplicationContext(), "Inventory information received");
+                byte [] data = Arrays.copyOfRange(surferServiceCharacteristics.get(packetData1Characteristic).getValue(), 0, 11 );
                 Log.i("TagInfo", Utils.hexToString(surferServiceCharacteristics.get(packetData1Characteristic).getValue()));
+
+                // SURFER CHANGE: Adding RFID_Tags
+                boolean found = false;
+                for( RFID_Tag element : surferTagArrayList ) { // Weird Loop to see if we found it
+                    if( element.RFID_EPC.equals(data) ) {
+                        found = true;
+                        element.update(surferServiceCharacteristics.get(packetData1Characteristic).getValue());
+                    }
+                }
+                if( found == false ) {
+                    RFID_Tag new_tag = new RFID_Tag(surferServiceCharacteristics.get(packetData1Characteristic).getValue());
+                    surferTagArrayList.add(new_tag);
+                }
+
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
             else if(packetData2CharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
