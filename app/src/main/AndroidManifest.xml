@@ -31,6 +31,8 @@
             android:name=".Service_BTLE_GATT"
             android:enabled="true"
             android:exported="true"></service>
+
+        <activity android:name=".RFID_Taglist"/>
     </application>
 
 </manifest>
