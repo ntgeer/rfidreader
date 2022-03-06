@@ -56,7 +56,7 @@ public class RFID_Taglist extends AppCompatActivity {
         }
 
         // Setup a Basic Listview
-        taglistAdapter = new ArrayAdapter<String>(this, R.layout.rfid_taglist, surferTagStringEPCs);
+        taglistAdapter = new ArrayAdapter<String>(this, R.layout.simple_list_item1, surferTagStringEPCs);
         taglist = (ListView) findViewById(R.id.taglist);
         taglist.setAdapter(taglistAdapter);
         // Need to set listener with following
