@@ -1,5 +1,6 @@
 package android.iotcasinochips.rfidreader;
 
+import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.content.ComponentName;
@@ -99,6 +100,8 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
     private final static int TRACK_APP_SPECD = 13;
     private final static int TRACK_LAST_INV = 14;
     private final static int UNKNOWN = 15;
+
+    volatile public int checkSuccess;
 
     private MainActivity ma;
 
@@ -258,25 +261,70 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                     if (initialByte)
                         sendEPC(b);
 
-                    switch (BTLE_GATT_Service.checkDescriptor.getUuid().toString()){
-                        case (readStateCharacteristicUUID):
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Log.i("Threads","Blank EPC/Inventorying Thread Start");
+
+                            // This call isn't successful. I'm not sure why, but I had to leave it. It's kind of like an initialization
+                            checkSuccess = BluetoothGatt.GATT_FAILURE;
                             BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
-                            break;
-                        case (writeTargetEPCCharacteristicUUID):
+                            while (checkSuccess != BluetoothGatt.GATT_SUCCESS){
+                                try {
+                                    checkSuccess = BTLE_GATT_Service.getCheckSuccess();
+                                    Thread.sleep(1000);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
+                            // -----------------------------------------------------------------------
+
+                            // Everything below is successful
+
+                            BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
+                            while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
+                                try {
+                                    Thread.sleep(10);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
+
                             BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeNewEPCCharacteristic), true);
-                            break;
-                        case (packetData2CharacteristicUUID):
-                            BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(readStateCharacteristic), true);
-                            break;
-                        case (writeNewEPCCharacteristicUUID):
+                            while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
+                                try {
+                                    Thread.sleep(10);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
+
                             BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
-                            break;
-                        case (packetData1CharacteristicUUID):
+                            while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
+                                try {
+                                    Thread.sleep(10);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
+
                             BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(packetData2Characteristic), true);
-                            break;
-                        default: BTLE_GATT_Service.readCharacteristic(surferServiceCharacteristics.get(readStateCharacteristic));
-                            break;
-                    }
+                            while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
+                                try {
+                                    Thread.sleep(10);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
+                        }
+                    }).start();
+
+
                 }
             }
         });

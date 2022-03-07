@@ -44,6 +44,7 @@ public class Service_BTLE_GATT extends Service {
     private static final int STATE_CONNECTED = 2;
 
     public BluetoothGattCharacteristic checkDescriptor;
+    public int checkSuccess;
 
     // SURFER CHANGE: This is to notify updateCharacteristic which characteristic was changed for the SM
     public String changedCharacteristicUUID = null;
@@ -74,6 +75,11 @@ public class Service_BTLE_GATT extends Service {
     public final static String EXTRA_UUID = "android.iotcasinochips.rfidreader.Service_BTLE_GATT.EXTRA_UUID";
     public final static String EXTRA_DATA = "android.iotcasinochips.rfidreader.Service_BTLE_GATT.EXTRA_DATA";
 
+
+    public int getCheckSuccess(){
+        Log.i("checkSuccess",String.valueOf(checkSuccess));
+        return checkSuccess;
+    }
 
     // Broadcasts/callback events for GATT events
     // Broadcast not viewable in Toast message
@@ -129,11 +135,14 @@ public class Service_BTLE_GATT extends Service {
                                       BluetoothGattDescriptor descriptor,
                                       int status){
 
+            checkSuccess = status;
+
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i("BluetoothGattDescriptor", "Descriptor Changed: " + descriptor.getCharacteristic().getUuid().toString());
                 checkDescriptor = descriptor.getCharacteristic();
             }
         }
+
 
         // Broadcast when a characteristic is read
         @Override
