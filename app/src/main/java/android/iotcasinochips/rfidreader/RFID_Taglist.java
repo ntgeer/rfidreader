@@ -40,6 +40,9 @@ public class RFID_Taglist extends AppCompatActivity {
 
         // Need to grab the ArrayList from our intent
         Bundle args = getIntent().getBundleExtra(TAG_BUNDLE);
+        if( surferTagArrayList != null ) {
+            surferTagArrayList.clear();
+        }
         if( args != null ) {
             surferTagArrayList = (ArrayList<RFID_Tag>)args.getSerializable(TAG_ARRAY_LIST);
         }
