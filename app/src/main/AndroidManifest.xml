@@ -33,6 +33,7 @@
             android:exported="true"></service>
 
         <activity android:name=".RFID_Taglist"/>
+        <activity android:name=".Info_RFID_Tag"/>
     </application>
 
 </manifest>

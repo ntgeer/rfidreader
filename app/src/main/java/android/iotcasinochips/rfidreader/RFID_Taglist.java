@@ -18,6 +18,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -59,6 +60,18 @@ public class RFID_Taglist extends AppCompatActivity {
         taglistAdapter = new ArrayAdapter<String>(this, R.layout.simple_list_item1, surferTagStringEPCs);
         taglist = (ListView) findViewById(R.id.taglist);
         taglist.setAdapter(taglistAdapter);
+        taglist.setOnItemClickListener(
+                new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+                        Intent intent3 = new Intent(view.getContext(), Info_RFID_Tag.class);
+                        //Bundle args = new Bundle();
+                        //args.putSerializable(Info_RFID_Tag.TAG_INFO, surferTagArrayList.get(position));
+                        intent3.putExtra(Info_RFID_Tag.TAG_INFO, surferTagArrayList.get(position));
+                        startActivity(intent3);
+                    }
+                }
+        );
         // Need to set listener with following
         //taglistExpandable.setOnChildClickListener(this);
 

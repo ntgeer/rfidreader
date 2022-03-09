@@ -6,19 +6,19 @@ import java.lang.Math;
 public class RFID_Tag implements Serializable {
     // Variables for Tag
     protected byte [] RFID_EPC;
-    private float freqHopMHz;
-    private float magAntHop;
-    private float phaseAntHop;
-    private float magCalHop;
-    private float phaseCalHop;
-    private byte nonceHop;
-    private float freqSkipMhz;
-    private float magAntSkip;
-    private float phaseAntSkip;
-    private float magCalSkip;
-    private float phaseCalSkip;
-    private byte nonceSkip;
-    private float pdoaRangeMeters;
+    protected float freqHopMHz;
+    protected float magAntHop;
+    protected float phaseAntHop;
+    protected float magCalHop;
+    protected float phaseCalHop;
+    protected byte nonceHop;
+    protected float freqSkipMhz;
+    protected float magAntSkip;
+    protected float phaseAntSkip;
+    protected float magCalSkip;
+    protected float phaseCalSkip;
+    protected byte nonceSkip;
+    protected float pdoaRangeMeters;
 
     // Intermediate Variables for Calculations
     byte m_frequencySlot;
