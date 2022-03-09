@@ -801,7 +801,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 // SURFER CHANGE: Adding RFID_Tags
                 boolean found = false;
                 for( RFID_Tag element : surferTagArrayList ) { // Weird Loop to see if we found it
-                    if( element.RFID_EPC.equals(data) ) {
+                    if(Arrays.equals(element.RFID_EPC, data)) {
                         found = true;
                         element.update(surferServiceCharacteristics.get(packetData1Characteristic).getValue());
                     }
