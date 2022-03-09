@@ -15,9 +15,22 @@
         android:orientation="vertical">
 
 
-        <ListView
-            android:id="@+id/info_rfid_tag_list"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true">
+
+                <ListView
+                    android:id="@+id/info_rfid_tag_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+            </ScrollView>
+        </LinearLayout>
+
     </LinearLayout>
 </RelativeLayout>
