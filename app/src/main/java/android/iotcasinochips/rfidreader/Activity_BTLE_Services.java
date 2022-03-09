@@ -45,7 +45,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
     // SURFER Service and Characteristics, this is how we'll be accessing them if they're available
     private BluetoothGattService surferService;
     private ArrayList<BluetoothGattCharacteristic> surferServiceCharacteristics;
-    private ArrayList<RFID_Tag> surferTagArrayList;
+    public ArrayList<RFID_Tag> surferTagArrayList;
 
     private Intent mBTLE_Service_Intent;
     private Service_BTLE_GATT BTLE_GATT_Service; // This is really the GATT Controller, not the Specific RFID Reader Service
@@ -213,6 +213,12 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             @Override
             public void onClick(View view) {
                 Log.i("Buttons", "Disconnect button pressed.");
+
+                // Unbind GATT server and services handler
+                unregisterReceiver(mGattUpdateReceiver);
+                unbindService(mBTLE_ServiceConnection);
+                mBTLE_Service_Intent = null;
+
                 BTLE_GATT_Service.disconnect();
             }
         });
@@ -246,6 +252,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 if( surferService != null && surferServiceCharacteristics != null ) {
                     Log.i("Buttons", "Inventory button pressed.");
                     sendCommand(5);
+                    surferTagArrayList.clear();
                     //BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
                 }
             }
@@ -406,6 +413,20 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         super.onPause();
     }
 
+    @Override
+    public void onBackPressed()
+    {
+        // Disconnect from reader
+        Utils.toast(getApplicationContext(), "Disconnected from reader");
+
+        // Unbind GATT server and services handler
+        unregisterReceiver(mGattUpdateReceiver);
+        unbindService(mBTLE_ServiceConnection);
+        mBTLE_Service_Intent = null;
+
+        BTLE_GATT_Service.disconnect();
+    }
+
     // Whenever the activity is stopped, reader disconnects
     // Make the Android back button do the same thing as the disconnect button
     // QOL feature
@@ -413,6 +434,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
     protected void onStop() {
         super.onStop();
 
+        /*
         // Disconnect from reader
         Utils.toast(getApplicationContext(), "Disconnected from reader");
 
@@ -421,7 +443,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         // Unbind GATT server and services handler
         unregisterReceiver(mGattUpdateReceiver);
         unbindService(mBTLE_ServiceConnection);
-        mBTLE_Service_Intent = null;
+        mBTLE_Service_Intent = null;*/
     }
 
     // When the expandable group CHARACTERISTICS are clicked, this function is called

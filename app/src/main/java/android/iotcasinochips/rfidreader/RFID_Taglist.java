@@ -1,5 +1,6 @@
 package android.iotcasinochips.rfidreader;
 
+import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 public class RFID_Taglist extends AppCompatActivity {
     public static final String TAG_BUNDLE = "android.iotcasinochips.rfidreader.RFID_Taglist.BUNDLE";
@@ -30,13 +32,41 @@ public class RFID_Taglist extends AppCompatActivity {
     private ListView taglist;
     private ArrayAdapter<String> taglistAdapter;
 
+    private Activity_BTLE_Services services;
+
     private ArrayList<RFID_Tag> surferTagArrayList;
-    private ArrayList<String> surferTagStringEPCs;
+    private HashMap<String, RFID_Tag> surferTagStringEPCs;
+    private ArrayList<String> surferTagStringArray;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate( savedInstanceState );
         setContentView(R.layout.rfid_taglist);
+
+        Context context = this;
+
+        // Declare storage lists for tags
+        surferTagStringArray = new ArrayList<>();
+
+        Button btnClear = (Button) findViewById(R.id.btnClear);
+
+        // Disconnect from reader and return to Scan page
+        btnClear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.i("Buttons", "Clear Tags button pressed.");
+                //services.surferTagArrayList.clear();
+                surferTagArrayList.clear();
+                surferTagStringEPCs.clear();
+                surferTagStringArray.clear();
+                taglistAdapter = new ArrayAdapter<String>(context, R.layout.simple_list_item1, surferTagStringArray);
+                taglist = (ListView) findViewById(R.id.taglist);
+                taglist.setAdapter(taglistAdapter);
+            }
+        });
+
+
+
 
         // Need to grab the ArrayList from our intent
         Bundle args = getIntent().getBundleExtra(TAG_BUNDLE);
@@ -47,20 +77,47 @@ public class RFID_Taglist extends AppCompatActivity {
             surferTagArrayList = (ArrayList<RFID_Tag>)args.getSerializable(TAG_ARRAY_LIST);
         }
 
-        // Make the Surfer Tag String EPC ArrayList
+        // Make the Surfer Tag String EPC HashMap
         if( surferTagStringEPCs == null ) {
-            surferTagStringEPCs = new ArrayList<>();
+            surferTagStringEPCs = new HashMap<>();
         }
         else {
             surferTagStringEPCs.clear();
         }
+
+        int i = 0;
+        // Add all tags
         for( RFID_Tag element : surferTagArrayList ) {
-            String str = Utils.hexToString(element.RFID_EPC);
-            surferTagStringEPCs.add(str);
+
+            // Get tags' EPC address
+            String epcTag = Utils.hexToString(element.RFID_EPC);
+
+            // Add tag to list if not on the list
+            // Compare existing EPC tags on list to EPC tag of this tag
+            if (!surferTagStringEPCs.containsKey(epcTag)) {
+                // Add tag to hash map and array list
+                surferTagStringEPCs.put(epcTag, element);
+
+                // Tag formatting
+                surferTagStringArray.add("Tag "+ String.valueOf(i) + ": " + epcTag.toLowerCase().replaceAll("\\s", ""));
+            }
+            // If list already has tag, do not add it again
+            // Update the tag RSSI instead
+            /*else {
+                Objects.requireNonNull(surferTagStringEPCs.get(epcTag)).magAntHop = element.magAntHop;
+            }*/
+
+            // Count tags
+            i++;
+
         }
 
+
+
+
+
         // Setup a Basic Listview
-        taglistAdapter = new ArrayAdapter<String>(this, R.layout.simple_list_item1, surferTagStringEPCs);
+        taglistAdapter = new ArrayAdapter<String>(this, R.layout.simple_list_item1, surferTagStringArray);
         taglist = (ListView) findViewById(R.id.taglist);
         taglist.setAdapter(taglistAdapter);
         taglist.setOnItemClickListener(
@@ -83,6 +140,8 @@ public class RFID_Taglist extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        // Instantiate GATT server handler
+        services = new Activity_BTLE_Services();
     }
 
     @Override
