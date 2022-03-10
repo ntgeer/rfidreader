@@ -214,12 +214,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             public void onClick(View view) {
                 Log.i("Buttons", "Disconnect button pressed.");
 
-                // Unbind GATT server and services handler
-                unregisterReceiver(mGattUpdateReceiver);
-                unbindService(mBTLE_ServiceConnection);
-                mBTLE_Service_Intent = null;
-
-                BTLE_GATT_Service.disconnect();
+                onBackPressed();
             }
         });
 
@@ -416,6 +411,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
     @Override
     public void onBackPressed()
     {
+        super.onBackPressed();
         // Disconnect from reader
         Utils.toast(getApplicationContext(), "Disconnected from reader");
 
