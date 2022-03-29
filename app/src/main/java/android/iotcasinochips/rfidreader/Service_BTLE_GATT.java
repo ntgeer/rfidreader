@@ -19,6 +19,7 @@ import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,6 +46,8 @@ public class Service_BTLE_GATT extends Service {
 
     public BluetoothGattCharacteristic checkDescriptor;
     public int checkSuccess;
+
+    public String logMessage;
 
     // SURFER CHANGE: This is to notify updateCharacteristic which characteristic was changed for the SM
     public String changedCharacteristicUUID = null;
@@ -165,6 +168,10 @@ public class Service_BTLE_GATT extends Service {
             // characteristics. This is where we'll receive said characteristic.
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
             Log.i("BluetoothGatt", "Characteristic Data Changed");
+            if (characteristic.getUuid().toString().equals(Activity_BTLE_Services.logMessageCharacteristicUUID)){
+                Log.i("SURFER",new String(characteristic.getValue()));
+
+            }
         }
 
         // Send broadcast and Toast message when characteristic written

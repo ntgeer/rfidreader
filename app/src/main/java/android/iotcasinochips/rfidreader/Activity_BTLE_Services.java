@@ -70,7 +70,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
     private final static String packetData1CharacteristicUUID = "e7560006-fc1d-8db5-ad46-26e5843b5915";
     private final static String packetData2CharacteristicUUID = "e7560007-fc1d-8db5-ad46-26e5843b5915";
     private final static String waveformDataCharacteristicUUID = "e7560008-fc1d-8db5-ad46-26e5843b5915";
-    private final static String logMessageCharacteristicUUID = "e7560009-fc1d-8db5-ad46-26e5843b5915";
+    public final static String logMessageCharacteristicUUID = "e7560009-fc1d-8db5-ad46-26e5843b5915";
     private final static String deviceInformationServiceUUID = "180A";
     private final static String hardwareRevisionStringUUID = "2A27";
 
@@ -424,7 +424,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                         b[i / 2] = (byte) ((Character.digit(input.charAt(i), 16) << 4)
                                 + Character.digit(input.charAt(i+1), 16));
                     }
-                    Log.i("Target EPC", Arrays.toString(b));
+                    Log.i("Target EPC", Utils.hexToString(b));
                     sendTargetEPC(b);
                 }
             }
@@ -1018,8 +1018,8 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
             else if(logMessageCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
-                // To be Implemented
-
+                //String s = new String(surferServiceCharacteristics.get(logMessageCharacteristic).getValue());
+                //Log.i("SURFER:",s);
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
             else if(hardwareRevisionStringUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
