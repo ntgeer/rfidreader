@@ -7,17 +7,23 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Color;
+import android.graphics.Rect;
 import android.os.IBinder;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ExpandableListView;
+import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -150,25 +156,46 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeStateCharacteristic));
     }
 
-    // Send command based on given byte array
-    public void sendEPC(byte[] b){
+    // Send target EPC
+    public void sendTargetEPC(byte[] b){
         // Set write type of writeTargetEPCCharacteristic
         surferServiceCharacteristics.get(writeTargetEPCCharacteristic).setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
 
         // Set value to b
         surferServiceCharacteristics.get(writeTargetEPCCharacteristic).setValue(b);
 
-        // Write EPC
+        // Write target EPC
         BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeTargetEPCCharacteristic));
+    }
+    // Send command based on given byte array
+    public void sendNewEPC(byte[] b){
+        // Set write type of writeTargetEPCCharacteristic
+        surferServiceCharacteristics.get(writeNewEPCCharacteristic).setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+
+        // Set value to b
+        surferServiceCharacteristics.get(writeNewEPCCharacteristic).setValue(b);
+
+        // Write new EPC
+        BTLE_GATT_Service.writeCharacteristic(surferServiceCharacteristics.get(writeNewEPCCharacteristic));
     }
 
     // Function to update buttons
     public void updateButtons(int state){
         Button btnInitialize = (Button) findViewById(R.id.btnInitialize);
         Button btnInventory = (Button) findViewById(R.id.btnInventory);
-        Button btnSendBlankEPC = (Button) findViewById(R.id.btnSendBlankEPC);
         Button btnReset = (Button) findViewById(R.id.btnReset);
         Button btnTagList = (Button) findViewById(R.id.btnTagList);
+        Button btnSendTargetEPC = (Button) findViewById(R.id.btnSendTargetEPC);
+        Button btnSendNewEPC = (Button) findViewById(R.id.btnSendNewEPC);
+        Button btnSearch = (Button) findViewById(R.id.btnSearch);
+        Button btnTrack = (Button) findViewById(R.id.btnTrack);
+        Button btnProgram = (Button) findViewById(R.id.btnProgram);
+        Button btnKillPassword = (Button) findViewById(R.id.btnKillPassword);
+        Button btnKill = (Button) findViewById(R.id.btnKill);
+        EditText input_targetEPC = (EditText) findViewById(R.id.input_targetEPC);
+        EditText input_newEPC = (EditText) findViewById(R.id.input_newEPC);
+        Switch swLastInventory = (Switch) findViewById(R.id.switch_lastInv);
+
         switch(state){
             case IDLE_CONFIGURED:
             case INVENTORYING:
@@ -176,18 +203,36 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 btnInitialize.setEnabled(false);
                 // Disable buttons before initializing
                 btnInventory.setEnabled(true);
-                btnSendBlankEPC.setEnabled(true);
                 btnReset.setEnabled(true);
                 btnTagList.setEnabled(true);
+                btnSendTargetEPC.setEnabled(true);
+                btnSendNewEPC.setEnabled(true);
+                btnSearch.setEnabled(true);
+                btnTrack.setEnabled(true);
+                btnProgram.setEnabled(true);
+                btnKillPassword.setEnabled(true);
+                btnKill.setEnabled(true);
+                input_targetEPC.setEnabled(true);
+                input_newEPC.setEnabled(true);
+                swLastInventory.setEnabled(true);
                 break;
             default:
                 // Enable initialize
                 btnInitialize.setEnabled(true);
                 // Disable buttons before initializing
                 btnInventory.setEnabled(false);
-                btnSendBlankEPC.setEnabled(false);
                 btnReset.setEnabled(false);
                 btnTagList.setEnabled(false);
+                btnSendTargetEPC.setEnabled(false);
+                btnSendNewEPC.setEnabled(false);
+                btnSearch.setEnabled(false);
+                btnTrack.setEnabled(false);
+                btnProgram.setEnabled(false);
+                btnKillPassword.setEnabled(false);
+                btnKill.setEnabled(false);
+                input_targetEPC.setEnabled(false);
+                input_newEPC.setEnabled(false);
+                swLastInventory.setEnabled(false);
                 break;
         }
 
@@ -204,9 +249,18 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         Button btnDisconnect = (Button) findViewById(R.id.btnDisconnect);
         Button btnInitialize = (Button) findViewById(R.id.btnInitialize);
         Button btnInventory = (Button) findViewById(R.id.btnInventory);
-        Button btnSendBlankEPC = (Button) findViewById(R.id.btnSendBlankEPC);
         Button btnReset = (Button) findViewById(R.id.btnReset);
         Button btnTagList = (Button) findViewById(R.id.btnTagList);
+        Button btnSendTargetEPC = (Button) findViewById(R.id.btnSendTargetEPC);
+        Button btnSendNewEPC = (Button) findViewById(R.id.btnSendNewEPC);
+        Button btnSearch = (Button) findViewById(R.id.btnSearch);
+        Button btnTrack = (Button) findViewById(R.id.btnTrack);
+        Button btnProgram = (Button) findViewById(R.id.btnProgram);
+        Button btnKillPassword = (Button) findViewById(R.id.btnKillPassword);
+        Button btnKill = (Button) findViewById(R.id.btnKill);
+        EditText input_targetEPC = (EditText) findViewById(R.id.input_targetEPC);
+        EditText input_newEPC = (EditText) findViewById(R.id.input_newEPC);
+        Switch swLastInventory = (Switch) findViewById(R.id.switch_lastInv);
 
         // Disconnect from reader and return to Scan page
         btnDisconnect.setOnClickListener(new View.OnClickListener() {
@@ -228,7 +282,82 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                     if (surferServiceCharacteristics.get(writeStateCharacteristic).getUuid().toString().equals(writeStateCharacteristicUUID)) {
                         Log.i("Buttons", "Initialize button pressed.");
                         // Cast 2 to a byte
-                        sendCommand(2);
+                        sendCommand(INITIALIZING);
+
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.i("Threads","Initialization Thread Start");
+
+                                // This call isn't successful. I'm not sure why, but I had to leave it. It's kind of like an initialization
+                                checkSuccess = BluetoothGatt.GATT_FAILURE;
+                                BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
+                                while (checkSuccess != BluetoothGatt.GATT_SUCCESS){
+                                    try {
+                                        checkSuccess = BTLE_GATT_Service.getCheckSuccess();
+                                        Thread.sleep(1000);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
+                                // -----------------------------------------------------------------------
+
+                                // Everything below is successful
+
+                                BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
+                                while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
+                                    try {
+                                        Thread.sleep(10);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
+
+                                BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeNewEPCCharacteristic), true);
+                                while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
+                                    try {
+                                        Thread.sleep(10);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
+
+                                BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
+                                while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
+                                    try {
+                                        Thread.sleep(10);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
+
+                                BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(packetData2Characteristic), true);
+                                while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
+                                    try {
+                                        Thread.sleep(10);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
+
+                                BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(logMessageCharacteristic), true);
+                                while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
+                                    try {
+                                        Thread.sleep(10);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
+                            }
+                        }).start();
+
+
                     }
                     else {
                         Utils.toast(getApplicationContext(), "We're not editing the right Characteristic");
@@ -246,87 +375,9 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             public void onClick(View view) {
                 if( surferService != null && surferServiceCharacteristics != null ) {
                     Log.i("Buttons", "Inventory button pressed.");
-                    sendCommand(5);
+                    sendCommand(INVENTORYING);
                     surferTagArrayList.clear();
                     //BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
-                }
-            }
-        });
-
-        // SURFER CHANGE: Need to send the Blank EPC before inventory to prevent EPC Filters for detecting tags properly
-        btnSendBlankEPC.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if( surferService != null && surferServiceCharacteristics != null ) {
-                    Log.i("Buttons", "SendBlankEPC button pressed.");
-                    byte[] b = {};
-                    if (initialByte)
-                        sendEPC(b);
-
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Log.i("Threads","Blank EPC/Inventorying Thread Start");
-
-                            // This call isn't successful. I'm not sure why, but I had to leave it. It's kind of like an initialization
-                            checkSuccess = BluetoothGatt.GATT_FAILURE;
-                            BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
-                            while (checkSuccess != BluetoothGatt.GATT_SUCCESS){
-                                try {
-                                    checkSuccess = BTLE_GATT_Service.getCheckSuccess();
-                                    Thread.sleep(1000);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                            BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
-                            // -----------------------------------------------------------------------
-
-                            // Everything below is successful
-
-                            BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeTargetEPCCharacteristic), true);
-                            while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
-                                try {
-                                    Thread.sleep(10);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                            BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
-
-                            BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(writeNewEPCCharacteristic), true);
-                            while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
-                                try {
-                                    Thread.sleep(10);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                            BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
-
-                            BTLE_GATT_Service.setCharacteristicIndication(surferServiceCharacteristics.get(packetData1Characteristic), true);
-                            while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
-                                try {
-                                    Thread.sleep(10);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                            BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
-
-                            BTLE_GATT_Service.setCharacteristicNotification(surferServiceCharacteristics.get(packetData2Characteristic), true);
-                            while (BTLE_GATT_Service.getCheckSuccess() != BluetoothGatt.GATT_SUCCESS){
-                                try {
-                                    Thread.sleep(10);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                            BTLE_GATT_Service.checkSuccess = BluetoothGatt.GATT_FAILURE;
-                        }
-                    }).start();
-
-
                 }
             }
         });
@@ -338,7 +389,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 if( surferService != null && surferServiceCharacteristics != null ) {
                     Log.i("Buttons", "Reset button pressed.");
                     // Send reset command
-                    sendCommand(10);
+                    sendCommand(RESET_ASICS);
                 }
             }
         });
@@ -354,6 +405,106 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 startActivity(intent2);
             }
         });
+
+        btnSendTargetEPC.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (input_targetEPC.getText().toString().isEmpty()) {
+                    Log.i("Buttons", "SendTargetEPC button pressed with blank input.");
+                    byte[] b = {};
+                    sendTargetEPC(b);
+                } else if (input_targetEPC.getText().toString().length() == 1 || input_targetEPC.getText().toString().length() > 24) {
+                    Utils.toast(getApplicationContext(), "Please enter a valid Target EPC.");
+                }
+                else {
+                    String input = input_targetEPC.getText().toString();
+                    int len = input.length();
+                    byte[] b = new byte[12];
+                    for (int i = 0; i < len; i += 2) {
+                        b[i / 2] = (byte) ((Character.digit(input.charAt(i), 16) << 4)
+                                + Character.digit(input.charAt(i+1), 16));
+                    }
+                    Log.i("Target EPC", Arrays.toString(b));
+                    sendTargetEPC(b);
+                }
+            }
+        });
+
+        btnSendNewEPC.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (input_newEPC.getText().toString().isEmpty()) {
+                    Log.i("Buttons", "SendNewEPC button pressed with blank input.");
+                    byte[] b = {};
+                    sendNewEPC(b);
+                } else if (input_newEPC.getText().toString().length() == 1 || input_newEPC.getText().toString().length() > 24) {
+                    Utils.toast(getApplicationContext(), "Please enter a valid New EPC.");
+                }
+                else {
+                    String input = input_newEPC.getText().toString();
+                    int len = input.length();
+                    byte[] b = new byte[12];
+                    for (int i = 0; i < len; i += 2) {
+                        b[i / 2] = (byte) ((Character.digit(input.charAt(i), 16) << 4)
+                                + Character.digit(input.charAt(i+1), 16));
+                    }
+                    Log.i("New EPC", Arrays.toString(b));
+                    sendNewEPC(b);
+                }
+            }
+        });
+
+        btnSearch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (swLastInventory.isChecked()){
+                    sendCommand(SEARCHING_LAST_INV);
+                } else {
+                    sendCommand(SEARCHING_APP_SPECD);
+                }
+            }
+        });
+
+        btnTrack.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (swLastInventory.isChecked()){
+                    sendCommand(TRACK_LAST_INV);
+                } else {
+                    sendCommand(TRACK_APP_SPECD);
+                }
+            }
+        });
+
+        btnProgram.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (swLastInventory.isChecked()){
+                    sendCommand(PROG_LAST_INV);
+                } else {
+                    sendCommand(PROG_APP_SPECD);
+                }
+            }
+        });
+
+        btnKillPassword.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+            }
+        });
+
+        btnKill.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+            }
+        });
+
+
+
+
+
 
         // Get name and address
         Intent intent = getIntent();
@@ -483,6 +634,22 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         return false;
     }
 
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            View v = getCurrentFocus();
+            if ( v instanceof EditText) {
+                Rect outRect = new Rect();
+                v.getGlobalVisibleRect(outRect);
+                if (!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
+                    v.clearFocus();
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                }
+            }
+        }
+        return super.dispatchTouchEvent( event );
+    }
     // Get services and characteristics from the reader
     public void updateServices() {
 
@@ -543,14 +710,22 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         // For the moment we can just print log messages for testing
         if(surferService != null) {
             if(writeTargetEPCCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
-                // To be Implemented
-                initialByte = false;
-                Utils.toast(getApplicationContext(), "Target EPC Written/Changed");
+                EditText input_targetEPC = (EditText) findViewById(R.id.input_targetEPC);
+
+                String s = new String(surferServiceCharacteristics.get(writeTargetEPCCharacteristic).getValue());
+                if (s.equals("")){
+                    input_targetEPC.setHint("Blank EPC");
+                    input_targetEPC.setHintTextColor(Color.GREEN);
+                }
+                else input_targetEPC.setTextColor(Color.GREEN);
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
             else if(writeNewEPCCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
-                // To be Implemented
-                Utils.toast(getApplicationContext(), "New EPC Written/Changed");
+                EditText input_newEPC = (EditText) findViewById(R.id.input_newEPC);
+                String s = new String(surferServiceCharacteristics.get(writeNewEPCCharacteristic).getValue(), StandardCharsets.UTF_8);
+
+                input_newEPC.setTextColor(Color.GREEN);
+
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
             else if(readStateCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
