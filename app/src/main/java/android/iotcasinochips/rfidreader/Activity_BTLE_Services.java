@@ -222,11 +222,11 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 // Disable buttons before initializing
                 btnInventory.setEnabled(false);
                 btnReset.setEnabled(false);
-                btnTagList.setEnabled(false);
+                //btnTagList.setEnabled(false);
                 btnSendTargetEPC.setEnabled(false);
                 btnSendNewEPC.setEnabled(false);
                 btnSearch.setEnabled(false);
-                btnTrack.setEnabled(false);
+                //btnTrack.setEnabled(false);
                 btnProgram.setEnabled(false);
                 btnKillPassword.setEnabled(false);
                 btnKill.setEnabled(false);
@@ -490,14 +490,14 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
         btnKillPassword.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                sendCommand(PROG_TAG_KILL_PW);
             }
         });
 
         btnKill.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                sendCommand(KILL_TAG);
             }
         });
 
@@ -988,7 +988,8 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 // For Inventory Command, prints out message until RFID Tags List is Fully Implemented
                 //Utils.toast(getApplicationContext(), Utils.hexToString(surferServiceCharacteristics.get(readStateCharacteristic).getValue()));
                 Utils.toast(getApplicationContext(), "Inventory information received");
-                byte [] data = Arrays.copyOfRange(surferServiceCharacteristics.get(packetData1Characteristic).getValue(), 0, 11 );
+                byte [] data = new byte[12];
+                System.arraycopy(surferServiceCharacteristics.get(packetData1Characteristic).getValue(), 0, data, 0, 12);
                 Log.i("TagInfo", Utils.hexToString(surferServiceCharacteristics.get(packetData1Characteristic).getValue()));
 
                 // SURFER CHANGE: Adding RFID_Tags
@@ -996,10 +997,14 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 for( RFID_Tag element : surferTagArrayList ) { // Weird Loop to see if we found it
                     if(Arrays.equals(element.RFID_EPC, data)) {
                         found = true;
-                        element.update(surferServiceCharacteristics.get(packetData1Characteristic).getValue());
+                        element.tagDataProcessor(surferServiceCharacteristics.get(packetData1Characteristic).getValue());
+                        int index = surferTagArrayList.indexOf(element);
+                        surferTagArrayList.set(index, element);
+                        if (surferTagArrayList.get(index).expectingSupplementData)
+                            Log.i("List_Change","List Changed.");
                     }
                 }
-                if( found == false ) {
+                if(!found) {
                     RFID_Tag new_tag = new RFID_Tag(surferServiceCharacteristics.get(packetData1Characteristic).getValue());
                     surferTagArrayList.add(new_tag);
                 }
@@ -1009,7 +1014,21 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             else if(packetData2CharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
                 // For Inventory Command, prints out message until RFID Tags List is Fully Implemented
                 Utils.toast(getApplicationContext(), "Inventory 2 information received");
-                //Utils.toast(getApplicationContext(), Utils.hexToString(surferServiceCharacteristics.get(readStateCharacteristic).getValue()));
+
+                Log.i("Packet2Info", Utils.hexToString(surferServiceCharacteristics.get(packetData2Characteristic).getValue()));
+
+                // SURFER CHANGE: Adding RFID_Tags
+                boolean found = false;
+                for( RFID_Tag element : surferTagArrayList ) { // Weird Loop to see if we found it
+                    if(element.expectingSupplementData) {
+                        found = true;
+                        element.tagDataProcessor(surferServiceCharacteristics.get(packetData2Characteristic).getValue());
+                    }
+                }
+                if(!found) {
+                    Log.i("SURFER Error","Couldn't find tag for packet 2");
+                }
+
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
             else if(waveformDataCharacteristicUUID.equals(BTLE_GATT_Service.changedCharacteristicUUID)) {
