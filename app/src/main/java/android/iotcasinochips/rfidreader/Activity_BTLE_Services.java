@@ -109,6 +109,8 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
 
     volatile public int checkSuccess;
 
+    public Intent tagIntent;
+
     private MainActivity ma;
 
     private ServiceConnection mBTLE_ServiceConnection = new ServiceConnection() {
@@ -414,12 +416,12 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                     byte[] b = {};
                     sendTargetEPC(b);
                 } else if (input_targetEPC.getText().toString().length() == 1 || input_targetEPC.getText().toString().length() > 24) {
-                    Utils.toast(getApplicationContext(), "Please enter a valid Target EPC.");
+                    Utils.toast(getApplicationContext(), "Please enter between 2 and 24 characters.");
                 }
                 else {
                     String input = input_targetEPC.getText().toString();
                     int len = input.length();
-                    byte[] b = new byte[12];
+                    byte[] b = new byte[len/2];
                     for (int i = 0; i < len; i += 2) {
                         b[i / 2] = (byte) ((Character.digit(input.charAt(i), 16) << 4)
                                 + Character.digit(input.charAt(i+1), 16));
@@ -501,7 +503,7 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
             }
         });
 
-
+        tagIntent = new Intent("android.iotcasinochips.rfidreader.RFID_Taglist");
 
 
 
@@ -1000,14 +1002,17 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                         element.tagDataProcessor(surferServiceCharacteristics.get(packetData1Characteristic).getValue());
                         int index = surferTagArrayList.indexOf(element);
                         surferTagArrayList.set(index, element);
-                        if (surferTagArrayList.get(index).expectingSupplementData)
-                            Log.i("List_Change","List Changed.");
                     }
                 }
                 if(!found) {
                     RFID_Tag new_tag = new RFID_Tag(surferServiceCharacteristics.get(packetData1Characteristic).getValue());
                     surferTagArrayList.add(new_tag);
                 }
+
+                Bundle args = new Bundle();
+                args.putSerializable(RFID_Taglist.TAG_ARRAY_LIST, (Serializable)surferTagArrayList );
+                tagIntent.putExtra(RFID_Taglist.TAG_BUNDLE, args);
+                sendBroadcast(tagIntent);
 
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }
@@ -1028,6 +1033,11 @@ public class Activity_BTLE_Services extends AppCompatActivity implements Expanda
                 if(!found) {
                     Log.i("SURFER Error","Couldn't find tag for packet 2");
                 }
+
+                Bundle args = new Bundle();
+                args.putSerializable(RFID_Taglist.TAG_ARRAY_LIST, (Serializable)surferTagArrayList );
+                tagIntent.putExtra(RFID_Taglist.TAG_BUNDLE, args);
+                sendBroadcast(tagIntent);
 
                 BTLE_GATT_Service.changedCharacteristicUUID = null;
             }

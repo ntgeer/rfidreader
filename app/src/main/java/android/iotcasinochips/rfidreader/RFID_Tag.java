@@ -21,6 +21,7 @@ public class RFID_Tag implements Serializable {
     protected double phaseCalSkip = 0;
     protected byte nonceSkip = 0;
     protected double pdoaRangeMeters = 0;
+    protected double minRSSI = -100.0;
 
     // Intermediate Variables for Calculations
     byte m_frequencySlot;
@@ -99,6 +100,7 @@ public class RFID_Tag implements Serializable {
         if(hopNotSkip){
             this.freqHopMHz  =   freqInMHz;
             this.magAntHop   =   antRSSIdBm; //This is the data from which tag RSSI is reported.
+            if (this.minRSSI < this.magAntHop) this.minRSSI = this.magAntHop;
             this.magCalHop   =   calRSSIdBm;
             this.phaseAntHop =   antPhaseDeg;
             this.phaseCalHop =   calPhaseDeg;
@@ -114,6 +116,7 @@ public class RFID_Tag implements Serializable {
         } else {
             this.freqSkipMHz  =   freqInMHz;
             this.magAntSkip   =   antRSSIdBm; //This is the data from which tag RSSI is reported.
+            if (this.minRSSI < this.magAntSkip) this.minRSSI = this.magAntSkip;
             this.magCalSkip   =   calRSSIdBm;
             this.phaseAntSkip =   antPhaseDeg;
             this.phaseCalSkip =   calPhaseDeg;
@@ -135,24 +138,24 @@ public class RFID_Tag implements Serializable {
         return true;
     }
 
-    protected float computeTagRSSIFromMagI(int magI, int magQ) {
-        float PCEPC_ACK_BITS = (float)(128.0);
-        float MILLER_M = (float)8.0;
-        float DBE_OSR = (float)24.0;
-        float RCVR_GAIN_DB = (float)131.5;
+    protected double computeTagRSSIFromMagI(int magI, int magQ) {
+        double PCEPC_ACK_BITS = (float)(128.0);
+        double MILLER_M = (float)8.0;
+        double DBE_OSR = (float)24.0;
+        double RCVR_GAIN_DB = (float)131.5;
 
-        float rssiInWatts = 0;
-        float rssiIndBm = 0;
-        float nChipsPerPacket = PCEPC_ACK_BITS * MILLER_M * DBE_OSR;
-        float receiverPowerGain = (float)(50.0)*( (float)(64.0) /( (float)(Math.pow(Math.PI, 4)) ) * (float)(Math.pow(10, RCVR_GAIN_DB/10 )) );
-        rssiInWatts = (float)( 1/receiverPowerGain ) * ((float)(Math.pow(magI/nChipsPerPacket,2)) + (float)(Math.pow(magQ/nChipsPerPacket, 2)) );
-        rssiIndBm = 10*(float)(Math.log10(rssiInWatts))+30;
+        double rssiInWatts = 0;
+        double rssiIndBm = 0;
+        double nChipsPerPacket = PCEPC_ACK_BITS * MILLER_M * DBE_OSR;
+        double receiverPowerGain = 50.0* (64.0/(Math.pow(Math.PI, 4))) * Math.pow(10, RCVR_GAIN_DB/10);
+        rssiInWatts = (1/receiverPowerGain)*(Math.pow(magI/nChipsPerPacket,2)+Math.pow(magQ/nChipsPerPacket,2));
+        rssiIndBm = 10*Math.log10(rssiInWatts)+30;
 
         return rssiIndBm;
     }
 
-    protected float computeTagPhaseFromMagI(int magI, int magQ) {
-        return (float)( (float)(Math.atan(-(double)(magQ)/(double)(magI))+Math.PI) % (float)(Math.PI));
+    protected double computeTagPhaseFromMagI(int magI, int magQ) {
+        return ((Math.atan(-(double)magQ/(double)magI)+Math.PI) % Math.PI);
     }
 
     protected double computeTagPDOARange(RFID_Tag tag) {
@@ -161,11 +164,6 @@ public class RFID_Tag implements Serializable {
         double ER_CAB = 2.0; //Need to check if this is PTFE or not. Same for cable and connector. Will need to change for actual operation (2.0).
         double ANT_PCB_ROUTE_M = 0.0095;
         double ANT_CAB_ROUTE_M = 0.2286;
-        double CAL_PCB_ROUTE_M = 0.0095;
-        double CAL_CAB_ROUTE_M = 0.254;
-
-        //#define CAL_PCB_ROUTE_M 0.0292
-        //#define CAL_CAB_ROUTE_M 0.0254
 
         double ant_known_phase_hop = 0.0;
         double ant_known_phase_skip = 0.0;
@@ -227,8 +225,7 @@ public class RFID_Tag implements Serializable {
         //Fourth thing is to finally subtract the hop and skip phases from one another
         //Div by 4 is for out and back phase change, otherwise it would just be 2*pi.
 
-        Log.i("Tag_Range","Success!" + String.valueOf(ant_known_phase_hop) + " " + String.valueOf(ant_known_phase_skip) + " " + String.valueOf(cal_known_phase_hop) + " "
-                + String.valueOf(cal_known_phase_skip) + " " + String.valueOf(corrected_phase_hop) + " " + String.valueOf(corrected_phase_skip));
+        Log.i("Tag_Range","Success!" + " Hop: " + tag.freqHopMHz + " Skip: " +  tag.freqSkipMHz);
 
         float l4 = (float)(SPEED_LIGHT_VAC/4);
 

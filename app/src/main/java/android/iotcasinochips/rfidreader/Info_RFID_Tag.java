@@ -29,7 +29,7 @@ public class Info_RFID_Tag extends AppCompatActivity {
         }
 
         tagToDisplayInformation.add("RFID EPC: " + Utils.hexToString(tagToDisplay.RFID_EPC));
-        tagToDisplayInformation.add("RSSI: " + String.format("%f", tagToDisplay.magAntHop));
+        tagToDisplayInformation.add("RSSI: " + String.format("%f", tagToDisplay.minRSSI));
         tagToDisplayInformation.add("Range: " + String.format("%f", tagToDisplay.pdoaRangeMeters));
         tagToDisplayInformation.add("freqHopMHz: " + String.format("%f", tagToDisplay.freqHopMHz));
         tagToDisplayInformation.add("phaseAntHop: " + String.format("%f", tagToDisplay.phaseAntHop));
